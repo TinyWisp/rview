@@ -12,7 +12,7 @@ var (
 	varPattern      *regexp.Regexp = regexp.MustCompile("^[a-zA-Z_][a-zA-Z0-9_]*")
 	intPattern      *regexp.Regexp = regexp.MustCompile("^[0-9]+")
 	floatPattern    *regexp.Regexp = regexp.MustCompile(`^[0-9]+\.[0-9]+`)
-	operatorPattern *regexp.Regexp = regexp.MustCompile(`^(\(|\)|\+|-|\*|/|%|==|!=|>|<|>=|<=|&&|\|\||!|,)`)
+	operatorPattern *regexp.Regexp = regexp.MustCompile(`^(\(|\)|\+|-|\*|/|%|==|!=|>=|<=|>|<|&&|\|\||!|,)`)
 	funcPattern     *regexp.Regexp = regexp.MustCompile(`^([a-zA-Z_][a-zA-Z0-9_]*)\(`)
 
 	operatorPriority = map[string]int{
@@ -38,17 +38,17 @@ var (
 )
 
 type TplExp struct {
-	Type       TplExpType `json:"Type"`
-	Int        int64      `json:"Int"`
-	Float      float64    `json:"Float"`
-	Str        string     `json:"Str"`
-	Bool       bool       `json:"Bool"`
-	FuncName   string     `json:"FuncName"`
-	FuncParams []*TplExp  `json:"FuncParams"`
-	Variable   string     `json:"Variable"`
-	Operator   string     `json:"Operator"`
-	Left       *TplExp    `json:"Left"`
-	Right      *TplExp    `json:"Right"`
+	Type       TplExpType
+	Int        int64
+	Float      float64
+	Str        string
+	Bool       bool
+	FuncName   string
+	FuncParams []*TplExp
+	Variable   string
+	Operator   string
+	Left       *TplExp
+	Right      *TplExp
 }
 
 type TplExpType int
@@ -65,16 +65,16 @@ const (
 	TplExpCalc
 )
 
-func ReadTplExp(str string) ([]TplExp, error) {
+func readTplExp(str string) ([]TplExp, error) {
 	exps := make([]TplExp, 0)
 
 	byteArr := []byte(str)
 	blen := len(byteArr)
-	begin := 0
+	pos := 0
 
 	for {
-		ch := byteArr[begin]
-		left := string(byteArr[begin:])
+		ch := byteArr[pos]
+		left := string(byteArr[pos:])
 
 		// true
 		if strings.HasPrefix(left, "true") {
@@ -82,7 +82,7 @@ func ReadTplExp(str string) ([]TplExp, error) {
 				Type: TplExpBool,
 				Bool: true,
 			})
-			begin += 4
+			pos += 4
 
 			// false
 		} else if strings.HasPrefix(left, "false") {
@@ -90,37 +90,37 @@ func ReadTplExp(str string) ([]TplExp, error) {
 				Type: TplExpBool,
 				Bool: false,
 			})
-			begin += 5
+			pos += 5
 
 			// nil
 		} else if strings.HasPrefix(left, "nil") {
 			exps = append(exps, TplExp{
 				Type: TplExpNil,
 			})
-			begin += 3
+			pos += 3
 
 			// string literal
 		} else if ch == '\'' {
-			for end := begin; end < blen; end++ {
+			for end := pos + 1; end < blen; end++ {
 				if byteArr[end] == '\'' && byteArr[end-1] != '\\' {
 					exps = append(exps, TplExp{
 						Type: TplExpStr,
-						Str:  strings.ReplaceAll(string(byteArr[begin:end+1]), "\\'", "'"),
+						Str:  strings.ReplaceAll(string(byteArr[pos+1:end]), "\\'", "'"),
 					})
-					begin = end + 1
+					pos = end + 1
 					break
 				}
 			}
 
 			// string literal
 		} else if ch == '"' {
-			for end := begin; end < blen; end++ {
+			for end := pos + 1; end < blen; end++ {
 				if byteArr[end] == '"' && byteArr[end-1] != '\\' {
 					exps = append(exps, TplExp{
 						Type: TplExpStr,
-						Str:  strings.ReplaceAll(string(byteArr[begin:end+1]), "\\\"", "\""),
+						Str:  strings.ReplaceAll(string(byteArr[pos+1:end]), "\\\"", "\""),
 					})
-					begin = end + 1
+					pos = end + 1
 					break
 				}
 			}
@@ -131,7 +131,7 @@ func ReadTplExp(str string) ([]TplExp, error) {
 				Type:     TplExpFunc,
 				FuncName: matches[1],
 			})
-			begin += len(matches[0])
+			pos += len(matches[0])
 
 			// variable
 		} else if matches := varPattern.FindStringSubmatch(left); len(matches) > 0 {
@@ -140,7 +140,16 @@ func ReadTplExp(str string) ([]TplExp, error) {
 				Type:     TplExpVar,
 				Variable: variable,
 			})
-			begin += len(matches[0])
+			pos += len(matches[0])
+
+			// float
+		} else if matches := floatPattern.FindStringSubmatch(left); len(matches) > 0 {
+			num, _ := strconv.ParseFloat(matches[0], 64)
+			exps = append(exps, TplExp{
+				Type:  TplExpFloat,
+				Float: num,
+			})
+			pos += len(matches[0])
 
 			// int
 		} else if matches := intPattern.FindStringSubmatch(left); len(matches) > 0 {
@@ -149,16 +158,7 @@ func ReadTplExp(str string) ([]TplExp, error) {
 				Type: TplExpInt,
 				Int:  num,
 			})
-			begin += len(matches[0])
-
-			// float
-		} else if matches := floatPattern.FindStringSubmatch(left); len(matches) > 0 {
-			num, _ := strconv.ParseFloat(matches[0], 64)
-			exps = append(exps, TplExp{
-				Type:  TplExpInt,
-				Float: num,
-			})
-			begin += len(matches[0])
+			pos += len(matches[0])
 
 			// operator
 		} else if matches := operatorPattern.FindStringSubmatch(left); len(matches) > 0 {
@@ -166,18 +166,18 @@ func ReadTplExp(str string) ([]TplExp, error) {
 				Type:     TplExpOperator,
 				Operator: matches[0],
 			})
-			begin += len(matches[0])
+			pos += len(matches[0])
 
 			// space
 		} else if ch == ' ' {
-			begin += 1
+			pos += 1
 
 			// others
 		} else {
 			return exps, fmt.Errorf("unexpected token: %s", left)
 		}
 
-		if begin > blen-1 {
+		if pos > blen-1 {
 			break
 		}
 	}
@@ -229,7 +229,6 @@ func generateTplExpTree(exps []TplExp) (*TplExp, error) {
 			bracketNum := 1
 			args := make([]*TplExp, 0)
 			for idx := pos + 1; idx < len(exps); idx++ {
-				fmt.Println(bracketNum)
 				if exps[idx].Type == TplExpOperator && exps[idx].Operator == "(" {
 					bracketNum += 1
 				} else if exps[idx].Type == TplExpOperator && exps[idx].Operator == ")" {
@@ -353,7 +352,7 @@ func generateTplExpTree(exps []TplExp) (*TplExp, error) {
 		})
 	} else if len(optrStack) == 1 && len(opndStack) == 1 {
 		var exp1 *TplExp = nil
-		exp2 := opndStack[1]
+		exp2 := opndStack[0]
 		operator := optrStack[0].Operator
 		opndStack = append(opndStack[:0], &TplExp{
 			Type:     TplExpCalc,
@@ -367,7 +366,7 @@ func generateTplExpTree(exps []TplExp) (*TplExp, error) {
 }
 
 func ParseTplExp(str string) (*TplExp, error) {
-	exps, err := ReadTplExp(str)
+	exps, err := readTplExp(str)
 	if err != nil {
 		return nil, err
 	}
