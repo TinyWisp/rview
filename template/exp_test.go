@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math"
 	"testing"
+
+	"github.com/davecgh/go-spew/spew"
 )
 
 type parseTplExpTestCase struct {
@@ -97,11 +99,109 @@ var (
 			},
 		},
 		{
-			str: "func1()",
+			str: "obj.key",
 			exp: TplExp{
-				Type:       TplExpFunc,
-				FuncName:   "func1",
-				FuncParams: make([]*TplExp, 0),
+				Type:     TplExpCalc,
+				Operator: ".",
+				Left: &TplExp{
+					Type:     TplExpVar,
+					Variable: "obj",
+				},
+				Right: &TplExp{
+					Type:     TplExpVar,
+					Variable: "key",
+				},
+			},
+		},
+		{
+			str: "obj.key.subkey",
+			exp: TplExp{
+				Type:     TplExpCalc,
+				Operator: ".",
+				Left: &TplExp{
+					Type:     TplExpCalc,
+					Operator: ".",
+					Left: &TplExp{
+						Type:     TplExpVar,
+						Variable: "obj",
+					},
+					Right: &TplExp{
+						Type:     TplExpVar,
+						Variable: "key",
+					},
+				},
+				Right: &TplExp{
+					Type:     TplExpVar,
+					Variable: "subkey",
+				},
+			},
+		},
+		{
+			str: "var1[attr1]",
+			exp: TplExp{
+				Type:     TplExpCalc,
+				Operator: "[",
+				Left: &TplExp{
+					Type:     TplExpVar,
+					Variable: "var1",
+				},
+				Right: &TplExp{
+					Type:     TplExpVar,
+					Variable: "attr1",
+				},
+			},
+		},
+		{
+			str: "var1['attr1']",
+			exp: TplExp{
+				Type:     TplExpCalc,
+				Operator: "[",
+				Left: &TplExp{
+					Type:     TplExpVar,
+					Variable: "var1",
+				},
+				Right: &TplExp{
+					Type: TplExpStr,
+					Str:  "attr1",
+				},
+			},
+		},
+		{
+			str: "var1[3]",
+			exp: TplExp{
+				Type:     TplExpCalc,
+				Operator: "[",
+				Left: &TplExp{
+					Type:     TplExpVar,
+					Variable: "var1",
+				},
+				Right: &TplExp{
+					Type: TplExpInt,
+					Int:  3,
+				},
+			},
+		},
+		{
+			str: "var1[3]['attr1']",
+			exp: TplExp{
+				Type:     TplExpCalc,
+				Operator: "[",
+				Left: &TplExp{
+					Type:     TplExpCalc,
+					Operator: "[",
+					Left: &TplExp{
+						Type:     TplExpVar,
+						Variable: "var1",
+					},
+					Right: &TplExp{
+						Type: TplExpInt,
+						Int:  3,
+					},
+				},
+				Right: &TplExp{
+					Type: TplExpStr,
+					Str:  "attr1",
+				},
 			},
 		},
 		{
@@ -113,7 +213,7 @@ var (
 			},
 		},
 		{
-			str: `func1("param1", param2, 333, 555.5, true, false, nil)`,
+			str: `func1("param1", param2, 333, 555.5, true, false, nil, var1.attr)`,
 			exp: TplExp{
 				Type:     TplExpFunc,
 				FuncName: "func1",
@@ -145,6 +245,18 @@ var (
 					{
 						Type: TplExpNil,
 					},
+					{
+						Type:     TplExpCalc,
+						Operator: ".",
+						Left: &TplExp{
+							Type:     TplExpVar,
+							Variable: "var1",
+						},
+						Right: &TplExp{
+							Type:     TplExpVar,
+							Variable: "attr",
+						},
+					},
 				},
 			},
 		},
@@ -156,6 +268,17 @@ var (
 				Right: &TplExp{
 					Type: TplExpInt,
 					Int:  1,
+				},
+			},
+		},
+		{
+			str: "-var1",
+			exp: TplExp{
+				Type:     TplExpCalc,
+				Operator: "-",
+				Right: &TplExp{
+					Type:     TplExpVar,
+					Variable: "var1",
 				},
 			},
 		},
@@ -198,6 +321,51 @@ var (
 			},
 		},
 		{
+			str: "var1 >=   3",
+			exp: TplExp{
+				Type:     TplExpCalc,
+				Operator: ">=",
+				Left: &TplExp{
+					Type:     TplExpVar,
+					Variable: "var1",
+				},
+				Right: &TplExp{
+					Type: TplExpInt,
+					Int:  3,
+				},
+			},
+		},
+		{
+			str: "var1 <3",
+			exp: TplExp{
+				Type:     TplExpCalc,
+				Operator: "<",
+				Left: &TplExp{
+					Type:     TplExpVar,
+					Variable: "var1",
+				},
+				Right: &TplExp{
+					Type: TplExpInt,
+					Int:  3,
+				},
+			},
+		},
+		{
+			str: "var1<=3",
+			exp: TplExp{
+				Type:     TplExpCalc,
+				Operator: "<=",
+				Left: &TplExp{
+					Type:     TplExpVar,
+					Variable: "var1",
+				},
+				Right: &TplExp{
+					Type: TplExpInt,
+					Int:  3,
+				},
+			},
+		},
+		{
 			str: "var1 == 3.14159",
 			exp: TplExp{
 				Type:     TplExpCalc,
@@ -209,6 +377,61 @@ var (
 				Right: &TplExp{
 					Type:  TplExpFloat,
 					Float: 3.14159,
+				},
+			},
+		},
+		{
+			str: "var1 != 3.14159",
+			exp: TplExp{
+				Type:     TplExpCalc,
+				Operator: "!=",
+				Left: &TplExp{
+					Type:     TplExpVar,
+					Variable: "var1",
+				},
+				Right: &TplExp{
+					Type:  TplExpFloat,
+					Float: 3.14159,
+				},
+			},
+		},
+		{
+			str: "var1 && !var2",
+			exp: TplExp{
+				Type:     TplExpCalc,
+				Operator: "&&",
+				Left: &TplExp{
+					Type:     TplExpVar,
+					Variable: "var1",
+				},
+				Right: &TplExp{
+					Type:     TplExpCalc,
+					Operator: "!",
+					Left:     nil,
+					Right: &TplExp{
+						Type:     TplExpVar,
+						Variable: "var2",
+					},
+				},
+			},
+		},
+		{
+			str: "var1 || !var2",
+			exp: TplExp{
+				Type:     TplExpCalc,
+				Operator: "||",
+				Left: &TplExp{
+					Type:     TplExpVar,
+					Variable: "var1",
+				},
+				Right: &TplExp{
+					Type:     TplExpCalc,
+					Operator: "!",
+					Left:     nil,
+					Right: &TplExp{
+						Type:     TplExpVar,
+						Variable: "var2",
+					},
 				},
 			},
 		},
@@ -282,6 +505,45 @@ var (
 				},
 			},
 		},
+		{
+			str: "(((a + b)*c)+d)+e",
+			exp: TplExp{
+				Type:     TplExpCalc,
+				Operator: "+",
+				Left: &TplExp{
+					Type:     TplExpCalc,
+					Operator: "+",
+					Left: &TplExp{
+						Type:     TplExpCalc,
+						Operator: "*",
+						Left: &TplExp{
+							Type:     TplExpCalc,
+							Operator: "+",
+							Left: &TplExp{
+								Type:     TplExpVar,
+								Variable: "a",
+							},
+							Right: &TplExp{
+								Type:     TplExpVar,
+								Variable: "b",
+							},
+						},
+						Right: &TplExp{
+							Type:     TplExpVar,
+							Variable: "c",
+						},
+					},
+					Right: &TplExp{
+						Type:     TplExpVar,
+						Variable: "d",
+					},
+				},
+				Right: &TplExp{
+					Type:     TplExpVar,
+					Variable: "e",
+				},
+			},
+		},
 	}
 )
 
@@ -352,12 +614,14 @@ func TestParseTplExp(t *testing.T) {
 	var str string
 	for _, testCase := range parseTplExpTestCases {
 		str = testCase.str
-		fmt.Printf("template:\n%s\n", str)
+		fmt.Printf("expression: %s\n", str)
 		realExp, err = ParseTplExp(str)
 		if err != nil {
 			t.Fatalf("error: %s", err)
 		} else if !isTplExpEqual(*realExp, testCase.exp) {
-			t.Fatalf("the template is not parsed as expected\n%+v\n%+v", *realExp, testCase.exp)
+			spew.Dump(*realExp)
+			spew.Dump(testCase.exp)
+			t.Fatalf("the expression is not parsed as expected\n")
 		}
 	}
 }

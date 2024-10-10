@@ -7,12 +7,25 @@ import (
 )
 
 var (
-	openingTagBeginPattern   *regexp.Regexp = regexp.MustCompile(`^<([a-zA-Z0-9\-]+)`)
-	openingTagEndPattern     *regexp.Regexp = regexp.MustCompile(`^>`)
-	closingTagPattern        *regexp.Regexp = regexp.MustCompile(`^</([a-zA-Z0-9\-]+)>`)
-	selfClosingTagEndPattern *regexp.Regexp = regexp.MustCompile(`^/>`)
-	attrStartPattern         *regexp.Regexp = regexp.MustCompile(`^([a-zA-Z0-9\-@:])=`)
-	forPattern               *regexp.Regexp = regexp.MustCompile(`^ *([a-zA-Z\_][a-zA-Z0-9\_]*), *([a-zA-Z\_][a-zA-Z0-9\_]*) *:= *range +([a-zA-Z\_][a-zA-Z0-9\_]*) *$`)
+	tplPattern = struct {
+		openingTagBegin   *regexp.Regexp
+		openingTagEnd     *regexp.Regexp
+		closingTag        *regexp.Regexp
+		selfClosingTagEnd *regexp.Regexp
+		attrStart         *regexp.Regexp
+		attrWithoutVal    *regexp.Regexp
+		vfor              *regexp.Regexp
+		whitespace        *regexp.Regexp
+	}{
+		openingTagBegin:   regexp.MustCompile(`^<([a-zA-Z0-9\-]+)`),
+		openingTagEnd:     regexp.MustCompile(`^>`),
+		closingTag:        regexp.MustCompile(`^</([a-zA-Z0-9\-]+)>`),
+		selfClosingTagEnd: regexp.MustCompile(`^/>`),
+		attrStart:         regexp.MustCompile(`^([a-zA-Z0-9\-_@:]+)=`),
+		attrWithoutVal:    regexp.MustCompile(`^([a-zA-Z0-9\-]+)`),
+		vfor:              regexp.MustCompile(`^ *([a-zA-Z\_][a-zA-Z0-9\_]*), *([a-zA-Z\_][a-zA-Z0-9\_]*) *:= *range +([a-zA-Z\_][a-zA-Z0-9\_]*) *$`),
+		whitespace:        regexp.MustCompile(`^\s+`),
+	}
 )
 
 type TplNodeType int
@@ -24,21 +37,25 @@ const (
 )
 
 type TplNode struct {
-	Type            TplNodeType
-	TagName         string
-	Children        []*TplNode
-	Binds           map[string]*TplExp
-	Events          map[string]*TplExp
-	Attrs           map[string]string
-	Directives      map[string]string
-	Text            string
-	Exp             *TplExp
-	If              *TplExp
-	ElseIf          *TplExp
-	Else            *TplExp
-	ForItemVarName  string
-	ForIdxVarName   string
-	ForRangeVarName string
+	Type       TplNodeType
+	TagName    string
+	Children   []*TplNode
+	Binds      map[string]*TplExp
+	Events     map[string]*TplExp
+	Attrs      map[string]string
+	Directives map[string]string
+	Text       string
+	Exp        *TplExp
+	If         *TplExp
+	ElseIf     *TplExp
+	Else       *TplExp
+	For        *TplFor
+}
+
+type TplFor struct {
+	Item  string
+	Idx   string
+	Range TplExp
 }
 
 type ParseTplError struct {
@@ -74,7 +91,6 @@ func newParseTplError(tpl string, pos int, msg string) ParseTplError {
 }
 
 func (tn *TplNode) setAttr(key string, val string) error {
-
 	// v-if
 	if key == "v-if" {
 		exp, err := ParseTplExp(val)
@@ -96,18 +112,23 @@ func (tn *TplNode) setAttr(key string, val string) error {
 
 		// v-else
 	} else if key == "v-else" {
-		exp, err := ParseTplExp(val)
-		if err != nil {
-			return err
+		tn.Else = &TplExp{
+			Type:     TplExpVar,
+			Variable: "",
 		}
-		tn.ElseIf = exp
 
 		// v-for
 	} else if key == "v-for" {
-		matches := forPattern.FindStringSubmatch(val)
-		tn.ForItemVarName = matches[2]
-		tn.ForIdxVarName = matches[1]
-		tn.ForRangeVarName = matches[3]
+		matches := tplPattern.vfor.FindStringSubmatch(val)
+		rangeExp, err := ParseTplExp(matches[3])
+		if err != nil {
+			return err
+		}
+		tn.For = &TplFor{
+			Item:  matches[2],
+			Idx:   matches[1],
+			Range: *rangeExp,
+		}
 
 		// v-bind:var
 	} else if strings.HasPrefix(key, "v-bind:") {
@@ -115,6 +136,9 @@ func (tn *TplNode) setAttr(key string, val string) error {
 		exp, err := ParseTplExp(val)
 		if err != nil {
 			return err
+		}
+		if tn.Binds == nil {
+			tn.Binds = make(map[string]*TplExp)
 		}
 		tn.Binds[vname] = exp
 
@@ -125,6 +149,9 @@ func (tn *TplNode) setAttr(key string, val string) error {
 		if err != nil {
 			return err
 		}
+		if tn.Binds == nil {
+			tn.Binds = make(map[string]*TplExp)
+		}
 		tn.Binds[vname] = exp
 
 		// v-on:event
@@ -133,6 +160,9 @@ func (tn *TplNode) setAttr(key string, val string) error {
 		exp, err := ParseTplExp(val)
 		if err != nil {
 			return err
+		}
+		if tn.Events == nil {
+			tn.Events = make(map[string]*TplExp)
 		}
 		tn.Events[event] = exp
 
@@ -143,16 +173,23 @@ func (tn *TplNode) setAttr(key string, val string) error {
 		if err != nil {
 			return err
 		}
+		if tn.Events == nil {
+			tn.Events = make(map[string]*TplExp)
+		}
 		tn.Events[event] = exp
+
+		// ordinary attritube
 	} else {
+		if tn.Attrs == nil {
+			tn.Attrs = make(map[string]string)
+		}
 		tn.Attrs[key] = val
 	}
 
 	return nil
 }
 
-func ReadTpl(tpl string) ([]*TplNode, error) {
-	byteArr := []byte(tpl)
+func ParseTpl(tpl string) ([]*TplNode, error) {
 	curTagNode := (*TplNode)(nil)
 	parentTagNode := (*TplNode)(nil)
 	tagNodeStack := make([]*TplNode, 0)
@@ -162,7 +199,7 @@ func ReadTpl(tpl string) ([]*TplNode, error) {
 	pos := 0
 
 	for {
-		if pos >= len(byteArr) {
+		if pos >= len(tpl) {
 			break
 		}
 
@@ -183,10 +220,10 @@ func ReadTpl(tpl string) ([]*TplNode, error) {
 			}
 		}
 
-		left := string(byteArr[pos:])
+		left := tpl[pos:]
 
 		// <tag
-		if matches := openingTagBeginPattern.FindStringSubmatch(left); !isReadingTag && len(matches) > 0 {
+		if matches := tplPattern.openingTagBegin.FindStringSubmatch(left); !isReadingTag && len(matches) > 0 {
 			name := matches[1]
 			tagNode := TplNode{
 				Type:    TplNodeTag,
@@ -195,59 +232,72 @@ func ReadTpl(tpl string) ([]*TplNode, error) {
 			tagNodeStack = append(tagNodeStack, &tagNode)
 			isReadingTag = true
 			if parentTagNode != nil {
-				textNode := TplNode{
-					Type: TplNodeText,
-					Text: text,
+				if trim(text) != "" {
+					textNode := TplNode{
+						Type: TplNodeText,
+						Text: trim(text),
+					}
+					text = ""
+					parentTagNode.Children = append(parentTagNode.Children, &textNode)
 				}
-				text = ""
-				parentTagNode.Children = append(parentTagNode.Children, &textNode, &tagNode)
+				parentTagNode.Children = append(parentTagNode.Children, &tagNode)
 			} else {
 				nodeArr = append(nodeArr, &tagNode)
 			}
 			pos += len(matches[0])
 
 			// >
-		} else if matches := openingTagEndPattern.FindStringSubmatch(left); isReadingTag && len(matches) > 0 {
+		} else if matches := tplPattern.openingTagEnd.FindStringSubmatch(left); isReadingTag && len(matches) > 0 {
 			isReadingTag = false
 			pos += 1
-			tagNodeStack = tagNodeStack[:slen-1]
 
 			// />
-		} else if matches := selfClosingTagEndPattern.FindStringSubmatch(left); isReadingTag && len(matches) > 0 {
+		} else if matches := tplPattern.selfClosingTagEnd.FindStringSubmatch(left); isReadingTag && len(matches) > 0 {
 			isReadingTag = false
 			curTagNode = nil
 			pos += 2
 			tagNodeStack = tagNodeStack[:slen-1]
 
 			// </tag>
-		} else if matches := closingTagPattern.FindStringSubmatch(left); !isReadingTag && len(matches) > 0 {
+		} else if matches := tplPattern.closingTag.FindStringSubmatch(left); !isReadingTag && len(matches) > 0 {
 			tagName := matches[1]
-			if tagName != curTagNode.TagName {
+			if tagName != parentTagNode.TagName {
 				msg := fmt.Sprintf("opening and ending tag mismatch: %s", tagName)
 				return nodeArr, newParseTplError(tpl, pos, msg)
 			}
+			if parentTagNode != nil && trim(text) != "" {
+				textNode := TplNode{
+					Type: TplNodeText,
+					Text: trim(text),
+				}
+				text = ""
+				parentTagNode.Children = append(parentTagNode.Children, &textNode)
+			}
 			curTagNode = nil
 			tagNodeStack = tagNodeStack[:slen-1]
+			pos += len(matches[0])
 
 			// key="val" or key='val'
-		} else if matches := attrStartPattern.FindStringSubmatch(left); isReadingTag && len(matches) > 0 {
-			pos += len(matches[0])
+		} else if matches := tplPattern.attrStart.FindStringSubmatch(left); isReadingTag && len(matches) > 0 {
 			attrKey := matches[1]
 			attrVal := ""
 			complete := false
-			if left[pos] == '"' {
-				for idx := pos + 1; idx < len(left); idx++ {
+			klen := len(attrKey)
+			if left[klen+1] == '"' {
+				for idx := klen + 2; idx < len(left); idx++ {
 					if left[idx] == '"' && left[idx-1] != '\\' {
-						attrVal = strings.ReplaceAll(string(left[pos+1:idx]), "\\\"", "\"")
+						attrVal = strings.ReplaceAll(string(left[klen+2:idx]), "\\\"", "\"")
 						complete = true
+						pos += idx + 1
 						break
 					}
 				}
-			} else if left[pos] == '\'' {
-				for idx := pos + 1; idx < len(left); idx++ {
+			} else if left[klen+1] == '\'' {
+				for idx := klen + 2; idx < len(left); idx++ {
 					if left[idx] == '\'' && left[idx-1] != '\\' {
-						attrVal = strings.ReplaceAll(string(left[pos+1:idx]), "\\'", "'")
+						attrVal = strings.ReplaceAll(string(left[klen+2:idx]), "\\'", "'")
 						complete = true
+						pos += idx + 1
 						break
 					}
 				}
@@ -258,12 +308,19 @@ func ReadTpl(tpl string) ([]*TplNode, error) {
 			}
 			curTagNode.setAttr(attrKey, attrVal)
 
+			// attritube without value,  like the "enabled" attribute in "<comp enabled>".
+		} else if matches := tplPattern.attrWithoutVal.FindStringSubmatch(left); isReadingTag && len(matches) > 0 {
+			attrKey := matches[1]
+			attrVal := ""
+			curTagNode.setAttr(attrKey, attrVal)
+			pos += len(matches[0])
+
 			// {{ ... }}
 		} else if !isReadingTag && strings.HasPrefix(left, "{{") {
-			if parentTagNode != nil {
+			if parentTagNode != nil && trim(text) != "" {
 				textNode := TplNode{
 					Type: TplNodeText,
-					Text: text,
+					Text: trim(text),
 				}
 				text = ""
 				parentTagNode.Children = append(parentTagNode.Children, &textNode)
@@ -272,13 +329,13 @@ func ReadTpl(tpl string) ([]*TplNode, error) {
 			inDoubleQuote := false
 			inSingleQuote := false
 			expStr := ""
-			for idx := pos + 3; idx < len(left)-2; idx++ {
+			for idx := 2; idx < len(left)-2; idx++ {
 				if left[idx] == '\'' && left[idx-1] != '\\' && !inDoubleQuote {
 					inSingleQuote = !inSingleQuote
 				} else if left[idx] == '"' && left[idx-1] != '\\' && !inSingleQuote {
 					inDoubleQuote = !inDoubleQuote
 				} else if !inSingleQuote && !inDoubleQuote && left[idx:idx+2] == "}}" {
-					expStr = left[pos+3 : idx]
+					expStr = left[2:idx]
 					exp, err := ParseTplExp(expStr)
 					if err != nil {
 						return nodeArr, err
@@ -288,7 +345,7 @@ func ReadTpl(tpl string) ([]*TplNode, error) {
 						Exp:  exp,
 					}
 					parentTagNode.Children = append(parentTagNode.Children, &expNode)
-					pos = idx + 2
+					pos += idx + 2
 				}
 			}
 
@@ -296,6 +353,10 @@ func ReadTpl(tpl string) ([]*TplNode, error) {
 		} else if !isReadingTag && !strings.HasPrefix(left, "{{") {
 			text += string(left[0])
 			pos += 1
+
+			// whitespace
+		} else if matches := tplPattern.whitespace.FindStringSubmatch(left); isReadingTag && len(matches) > 0 {
+			pos += len(matches[0])
 
 			// others
 		} else {
