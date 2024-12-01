@@ -108,8 +108,8 @@ var (
 					Variable: "obj",
 				},
 				Right: &TplExp{
-					Type:     TplExpVar,
-					Variable: "key",
+					Type: TplExpStr,
+					Str:  "key",
 				},
 			},
 		},
@@ -126,13 +126,13 @@ var (
 						Variable: "obj",
 					},
 					Right: &TplExp{
-						Type:     TplExpVar,
-						Variable: "key",
+						Type: TplExpStr,
+						Str:  "key",
 					},
 				},
 				Right: &TplExp{
-					Type:     TplExpVar,
-					Variable: "subkey",
+					Type: TplExpStr,
+					Str:  "subkey",
 				},
 			},
 		},
@@ -253,8 +253,8 @@ var (
 							Variable: "var1",
 						},
 						Right: &TplExp{
-							Type:     TplExpVar,
-							Variable: "attr",
+							Type: TplExpStr,
+							Str:  "attr",
 						},
 					},
 				},
@@ -544,6 +544,163 @@ var (
 				},
 			},
 		},
+		{
+			str: "{}",
+			exp: TplExp{
+				Type: TplExpMap,
+				Map:  map[string]*TplExp{},
+			},
+		},
+		{
+			str: "{a:1}",
+			exp: TplExp{
+				Type: TplExpMap,
+				Map: map[string]*TplExp{
+					"a": {
+						Type: TplExpInt,
+						Int:  1,
+					},
+				},
+			},
+		},
+		{
+			str: "{a:1;}",
+			exp: TplExp{
+				Type: TplExpMap,
+				Map: map[string]*TplExp{
+					"a": {
+						Type: TplExpInt,
+						Int:  1,
+					},
+				},
+			},
+		},
+		{
+			str: "{a:1;\nb:2}",
+			exp: TplExp{
+				Type: TplExpMap,
+				Map: map[string]*TplExp{
+					"a": {
+						Type: TplExpInt,
+						Int:  1,
+					},
+					"b": {
+						Type: TplExpInt,
+						Int:  2,
+					},
+				},
+			},
+		},
+		{
+			str: "{a:1;\nb:2;}",
+			exp: TplExp{
+				Type: TplExpMap,
+				Map: map[string]*TplExp{
+					"a": {
+						Type: TplExpInt,
+						Int:  1,
+					},
+					"b": {
+						Type: TplExpInt,
+						Int:  2,
+					},
+				},
+			},
+		},
+		{
+			str: "{a:1;\n\rb:2;}",
+			exp: TplExp{
+				Type: TplExpMap,
+				Map: map[string]*TplExp{
+					"a": {
+						Type: TplExpInt,
+						Int:  1,
+					},
+					"b": {
+						Type: TplExpInt,
+						Int:  2,
+					},
+				},
+			},
+		},
+		{
+			str: "{a:1;   b:1.1 ;  c:\"str\";d:'str'; e: true;\n f: false;\n\r g:nil; h:var1; i:a+b+3;  j:  func1();  k:func2(a,b);}",
+			exp: TplExp{
+				Type: TplExpMap,
+				Map: map[string]*TplExp{
+					"a": {
+						Type: TplExpInt,
+						Int:  1,
+					},
+					"b": {
+						Type:  TplExpFloat,
+						Float: 1.1,
+					},
+					"c": {
+						Type: TplExpStr,
+						Str:  "str",
+					},
+					"d": {
+						Type: TplExpStr,
+						Str:  "str",
+					},
+					"e": {
+						Type: TplExpBool,
+						Bool: true,
+					},
+					"f": {
+						Type: TplExpBool,
+						Bool: false,
+					},
+					"g": {
+						Type: TplExpNil,
+					},
+					"h": {
+						Type:     TplExpVar,
+						Variable: "var1",
+					},
+					"i": {
+						Type:     TplExpCalc,
+						Operator: "+",
+						Left: &TplExp{
+							Type:     TplExpCalc,
+							Operator: "+",
+							Left: &TplExp{
+								Type:     TplExpVar,
+								Variable: "a",
+							},
+							Right: &TplExp{
+								Type:     TplExpVar,
+								Variable: "b",
+							},
+						},
+						Right: &TplExp{
+							Type: TplExpInt,
+							Int:  3,
+						},
+					},
+					"j": {
+						Type:       TplExpFunc,
+						FuncName:   "func1",
+						FuncParams: []*TplExp{},
+					},
+					"k": {
+						Type:     TplExpFunc,
+						FuncName: "func2",
+						FuncParams: []*TplExp{
+							{
+								Type:     TplExpVar,
+								Variable: "a",
+							},
+							{
+								Type:     TplExpVar,
+								Variable: "b",
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 )
 
@@ -589,6 +746,19 @@ func isTplExpEqual(a TplExp, b TplExp) bool {
 		}
 		for i := 0; i < len(a.FuncParams); i++ {
 			if !isTplExpEqual(*a.FuncParams[i], *b.FuncParams[i]) {
+				return false
+			}
+		}
+
+	case TplExpMap:
+		if len(a.Map) != len(b.Map) {
+			return false
+		}
+		for k, v := range a.Map {
+			if b.Map[k] == nil {
+				return false
+			}
+			if !isTplExpEqual(*v, *b.Map[k]) {
 				return false
 			}
 		}

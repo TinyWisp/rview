@@ -20,7 +20,7 @@ var (
 		variable:   regexp.MustCompile("^[a-zA-Z_][a-zA-Z0-9_]*"),
 		intNum:     regexp.MustCompile("^[0-9]+"),
 		floatNum:   regexp.MustCompile(`^[0-9]+\.[0-9]+`),
-		operator:   regexp.MustCompile(`^(\(|\)|\[|\]|\+|-|\*|/|%|==|!=|>=|<=|>|<|&&|\|\||!|,|\.)`),
+		operator:   regexp.MustCompile(`^(\{|\}|\(|\)|\[|\]|\+|-|\*|/|%|==|!=|>=|<=|>|<|&&|\|\||!|,|\.|:|;)`),
 		function:   regexp.MustCompile(`^([a-zA-Z_][a-zA-Z0-9_]*)\(`),
 		whitespace: regexp.MustCompile(`^\s+`),
 	}
@@ -59,6 +59,7 @@ type TplExp struct {
 	FuncParams []*TplExp
 	Variable   string
 	Operator   string
+	Map        map[string]*TplExp
 	Left       *TplExp
 	Right      *TplExp
 }
@@ -75,6 +76,7 @@ const (
 	TplExpOperator
 	TplExpFunc
 	TplExpCalc
+	TplExpMap
 )
 
 func readTplExp(str string) ([]TplExp, error) {
@@ -141,10 +143,18 @@ func readTplExp(str string) ([]TplExp, error) {
 					Type: TplExpNil,
 				})
 			default:
-				exps = append(exps, TplExp{
-					Type:     TplExpVar,
-					Variable: variable,
-				})
+				count := len(exps)
+				if count > 0 && exps[count-1].Type == TplExpOperator && exps[count-1].Operator == "." {
+					exps = append(exps, TplExp{
+						Type: TplExpStr,
+						Str:  variable,
+					})
+				} else {
+					exps = append(exps, TplExp{
+						Type:     TplExpVar,
+						Variable: variable,
+					})
+				}
 			}
 			pos += len(matches[0])
 
@@ -203,8 +213,58 @@ func generateTplExpTree(exps []TplExp) (*TplExp, error) {
 
 		exp := exps[pos]
 
-		// (...)
-		if exp.Type == TplExpOperator && exp.Operator == "(" {
+		// {...}
+		if exp.Type == TplExpOperator && exp.Operator == "{" {
+			bracketEnd := pos
+			bracketNum := 1
+			key := ""
+			valBegin := 0
+			valEnd := 0
+			expMap := make(map[string]*TplExp)
+			for idx := pos + 1; idx < len(exps); idx++ {
+				if exps[idx].Type == TplExpOperator && exps[idx].Operator == "{" {
+					bracketNum += 1
+				} else if exps[idx].Type == TplExpOperator && exps[idx].Operator == "}" {
+					bracketNum -= 1
+					valEnd = idx - 1
+				} else if exps[idx].Type == TplExpOperator && exps[idx].Operator == ":" {
+					if exps[idx-1].Type != TplExpVar {
+						return nil, errors.New("there must be a key before ':'")
+					}
+					if exps[idx-2].Type != TplExpOperator || (exps[idx-2].Operator != "{" && exps[idx-2].Operator != ";") {
+						return nil, errors.New("invalid key before ':'")
+					}
+					key = exps[idx-1].Variable
+					valBegin = idx + 1
+				} else if exps[idx].Type == TplExpOperator && exps[idx].Operator == ";" {
+					valEnd = idx - 1
+				}
+
+				if bracketNum <= 1 && valEnd-valBegin >= 0 && key != "" {
+					val, err := generateTplExpTree(exps[valBegin : valEnd+1])
+					if err != nil {
+						return nil, err
+					}
+					expMap[key] = val
+					key = ""
+				}
+				if bracketNum == 0 {
+					bracketEnd = idx
+					break
+				}
+			}
+			if bracketNum > 0 {
+				return nil, errors.New("mismatched curly brackets")
+			}
+
+			opndStack = append(opndStack, &TplExp{
+				Type: TplExpMap,
+				Map:  expMap,
+			})
+			pos = bracketEnd + 1
+
+			// (...)
+		} else if exp.Type == TplExpOperator && exp.Operator == "(" {
 			bracketBegin := pos
 			bracketEnd := pos
 			bracketNum := 1
@@ -235,7 +295,7 @@ func generateTplExpTree(exps []TplExp) (*TplExp, error) {
 			bracketEnd := pos
 			bracketNum := 1
 			for idx := pos + 1; idx < len(exps); idx++ {
-				if (exps[idx].Type == TplExpOperator && exps[idx].Operator == "[") || exps[idx].Type == TplExpFunc {
+				if exps[idx].Type == TplExpOperator && exps[idx].Operator == "[" {
 					bracketNum += 1
 				} else if exps[idx].Type == TplExpOperator && exps[idx].Operator == "]" {
 					bracketNum -= 1
@@ -252,8 +312,17 @@ func generateTplExpTree(exps []TplExp) (*TplExp, error) {
 			if err != nil {
 				return nil, err
 			}
-			opndStack = append(opndStack, parsedExp)
-			optrStack = append(optrStack, &exp)
+			lastOpnd := opndStack[len(opndStack)-1]
+			opndStack[len(opndStack)-1] = &TplExp{
+				Type:     TplExpCalc,
+				Operator: "[",
+				Left:     lastOpnd,
+				Right:    parsedExp,
+			}
+			/*
+				opndStack = append(opndStack, parsedExp)
+				optrStack = append(optrStack, &exp)
+			*/
 			pos = bracketEnd + 1
 
 			// func
