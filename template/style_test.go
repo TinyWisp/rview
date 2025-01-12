@@ -8,13 +8,13 @@ import (
 	"github.com/davecgh/go-spew/spew"
 )
 
-type parseCssRuleTestCase struct {
+type readCssTestCase struct {
 	str    string
 	tokens []CSSToken
 }
 
 var (
-	parseCssRuleTestCases = []parseCssRuleTestCase{
+	readCssTestCases = []readCssTestCase{
 		{
 			str: "10",
 			tokens: []CSSToken{
@@ -86,22 +86,31 @@ var (
 			},
 		},
 		{
-			str: "5paw",
+			str: "5pcw",
 			tokens: []CSSToken{
 				{
 					Type: CSSTokenNum,
 					Num:  5,
-					Unit: paw,
+					Unit: pcw,
 				},
 			},
 		},
 		{
-			str: "5pah",
+			str: "5pch",
 			tokens: []CSSToken{
 				{
 					Type: CSSTokenNum,
 					Num:  5,
-					Unit: pah,
+					Unit: pch,
+				},
+			},
+		},
+		{
+			str: "#ababab",
+			tokens: []CSSToken{
+				{
+					Type:  CSSTokenColor,
+					Color: "#ababab",
 				},
 			},
 		},
@@ -111,6 +120,33 @@ var (
 				{
 					Type: CSSTokenStr,
 					Str:  "left",
+				},
+			},
+		},
+		{
+			str: "\"hello\"",
+			tokens: []CSSToken{
+				{
+					Type: CSSTokenStr,
+					Str:  "hello",
+				},
+			},
+		},
+		{
+			str: "'hello'",
+			tokens: []CSSToken{
+				{
+					Type: CSSTokenStr,
+					Str:  "hello",
+				},
+			},
+		},
+		{
+			str: ".abc",
+			tokens: []CSSToken{
+				{
+					Type:  CSSTokenClass,
+					Class: "abc",
 				},
 			},
 		},
@@ -128,8 +164,8 @@ var (
 								Unit: vw,
 							},
 							{
-								Type: CSSTokenStr,
-								Str:  "-",
+								Type:     CSSTokenOperator,
+								Operator: "-",
 							},
 							{
 								Type: CSSTokenNum,
@@ -193,20 +229,20 @@ func areCssTokensEqual(a []CSSToken, b []CSSToken) bool {
 	return true
 }
 
-func TestParseCssRule(t *testing.T) {
+func TestTokenizeCss(t *testing.T) {
 	var realTokens []CSSToken
 	var err error
 	var str string
-	for _, testCase := range parseCssRuleTestCases {
+	for _, testCase := range readCssTestCases {
 		str = testCase.str
 		fmt.Printf("css rule: %s\n", str)
-		realTokens, err = ParseCssRule(str)
+		realTokens, err = tokenizeCss(str)
 		if err != nil {
 			t.Fatalf("error: %s", err)
 		} else if !areCssTokensEqual(realTokens, testCase.tokens) {
 			spew.Dump(realTokens)
 			spew.Dump(testCase.tokens)
-			t.Fatalf("the css rule is not parsed as expected\n")
+			t.Fatalf("the css rule is not readd as expected\n")
 		}
 	}
 
