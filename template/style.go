@@ -17,6 +17,7 @@ const (
 	CSSTokenFunc
 	CSSTokenVar
 	CSSTokenClass
+	CSSTokenProp
 )
 
 type CSSUnit int
@@ -53,6 +54,7 @@ type CSSToken struct {
 	FuncName  string
 	Class     string
 	Color     string
+	Prop      string
 	Arguments [][]CSSToken
 	Pos       int
 }
@@ -65,44 +67,50 @@ type CSSClassMap map[string]CSSClass
 
 var (
 	cssPattern = struct {
-		num      *regexp.Regexp
-		funct    *regexp.Regexp
-		operator *regexp.Regexp
-		variable *regexp.Regexp
-		color    *regexp.Regexp
-		str      *regexp.Regexp
-		class    *regexp.Regexp
-		prop     *regexp.Regexp
+		num        *regexp.Regexp
+		funct      *regexp.Regexp
+		operator   *regexp.Regexp
+		variable   *regexp.Regexp
+		color      *regexp.Regexp
+		str        *regexp.Regexp
+		class      *regexp.Regexp
+		prop       *regexp.Regexp
+		whitespace *regexp.Regexp
 	}{
-		num:      regexp.MustCompile("^([0-9]+[.]?[0-9]*)(ch|vw|vh|pfw|pfh|pcw|pch)?"),
-		color:    regexp.MustCompile("^#[0-9a-fA-F]{6}"),
-		funct:    regexp.MustCompile(`^([a-zA-Z_][a-zA-Z0-9_]*)\(`),
-		operator: regexp.MustCompile(`^[+\-*/(){}]`),
-		str:      regexp.MustCompile(`^[^\s:;.{}()+\-*/]+`),
-		class:    regexp.MustCompile(`^\.([0-9a-zA-Z_\-]+)`),
-		variable: regexp.MustCompile(`^var\(.*?\)`),
+		num:        regexp.MustCompile("^([0-9]+[.]?[0-9]*)(ch|vw|vh|pfw|pfh|pcw|pch)?"),
+		color:      regexp.MustCompile("^#[0-9a-fA-F]{6}"),
+		funct:      regexp.MustCompile(`^([a-zA-Z_][a-zA-Z0-9_]*)\(`),
+		operator:   regexp.MustCompile(`^[+\-*/(){}:;]`),
+		prop:       regexp.MustCompile(`^(;|\{)\s+([a-zA-Z0-9_\-]+)`),
+		str:        regexp.MustCompile(`^[^\s:;.{}()+\-*/]+`),
+		class:      regexp.MustCompile(`^\.([0-9a-zA-Z_\-]+)`),
+		variable:   regexp.MustCompile(`^var\(.*?\)`),
+		whitespace: regexp.MustCompile(`^\s+`),
 	}
 
 	propRuleMap = map[string][][]CSSTokenType{
-		"margin":         {{CSSTokenNum}, {CSSTokenNum, CSSTokenNum}, {CSSTokenNum, CSSTokenNum, CSSTokenNum, CSSTokenNum}},
-		"margin-top":     {{CSSTokenNum}},
-		"margin-bottom":  {{CSSTokenNum}},
-		"margin-left":    {{CSSTokenNum}},
-		"margin-right":   {{CSSTokenNum}},
-		"padding":        {{CSSTokenNum}, {CSSTokenNum, CSSTokenNum}, {CSSTokenNum, CSSTokenNum, CSSTokenNum, CSSTokenNum}},
-		"padding-top":    {{CSSTokenNum}},
-		"padding-bottom": {{CSSTokenNum}},
-		"padding-left":   {{CSSTokenNum}},
-		"padding-right":  {{CSSTokenNum}},
-		"border":         {{CSSTokenNum}, {CSSTokenNum, CSSTokenColor}, {CSSTokenNum, CSSTokenColor, CSSTokenStr, CSSTokenStr, CSSTokenStr, CSSTokenStr, CSSTokenStr, CSSTokenStr}},
-		"border-color":   {{CSSTokenColor}},
-		"border-ch":      {{CSSTokenStr, CSSTokenStr, CSSTokenStr, CSSTokenStr, CSSTokenStr, CSSTokenStr}},
-		"border-ch-lt":   {{CSSTokenStr}, {CSSTokenStr, CSSTokenColor}},
-		"border-ch-rt":   {{CSSTokenStr}, {CSSTokenStr, CSSTokenColor}},
-		"border-ch-lb":   {{CSSTokenStr}, {CSSTokenStr, CSSTokenColor}},
-		"border-ch-rb":   {{CSSTokenStr}, {CSSTokenStr, CSSTokenColor}},
-		"border-ch-v":    {{CSSTokenStr}, {CSSTokenStr, CSSTokenColor}},
-		"border-ch-h":    {{CSSTokenStr}, {CSSTokenStr, CSSTokenColor}},
+		"margin":              {{CSSTokenNum}, {CSSTokenNum, CSSTokenNum}, {CSSTokenNum, CSSTokenNum, CSSTokenNum, CSSTokenNum}},
+		"margin-top":          {{CSSTokenNum}},
+		"margin-bottom":       {{CSSTokenNum}},
+		"margin-left":         {{CSSTokenNum}},
+		"margin-right":        {{CSSTokenNum}},
+		"padding":             {{CSSTokenNum}, {CSSTokenNum, CSSTokenNum}, {CSSTokenNum, CSSTokenNum, CSSTokenNum, CSSTokenNum}},
+		"padding-top":         {{CSSTokenNum}},
+		"padding-bottom":      {{CSSTokenNum}},
+		"padding-left":        {{CSSTokenNum}},
+		"padding-right":       {{CSSTokenNum}},
+		"border-width":        {{CSSTokenNum}, {CSSTokenNum, CSSTokenNum}, {CSSTokenNum, CSSTokenNum, CSSTokenNum, CSSTokenNum}},
+		"border-left-width":   {{CSSTokenNum}},
+		"border-right-width":  {{CSSTokenNum}},
+		"border-top-width":    {{CSSTokenNum}},
+		"border-bottom-width": {{CSSTokenNum}},
+		"border-color":        {{CSSTokenColor}, {CSSTokenColor, CSSTokenColor}, {CSSTokenColor, CSSTokenColor, CSSTokenColor, CSSTokenColor}},
+		"border-left-color":   {{CSSTokenColor}},
+		"border-right-color":  {{CSSTokenColor}},
+		"border-top-color":    {{CSSTokenColor}},
+		"border-bottom-color": {{CSSTokenColor}},
+		"border-char":         {{CSSTokenStr, CSSTokenStr, CSSTokenStr, CSSTokenStr, CSSTokenStr, CSSTokenStr}},
+		"background-color":    {{CSSTokenColor}},
 	}
 )
 
@@ -116,6 +124,13 @@ func parseCss(css string) (CSSClassMap, error) {
 	if err2 != nil {
 		return nil, err2
 	}
+
+	err3 := checkCssPropRule(classMap)
+	if err3 != nil {
+		return nil, err3
+	}
+
+	coverCssProp(classMap)
 
 	return classMap, nil
 }
@@ -136,8 +151,8 @@ func genCssClassMap(tokens []CSSToken) (CSSClassMap, error) {
 		} else if expect == "{" && token.Type == CSSTokenOperator && token.Operator == "{" {
 			expect = "key"
 
-		} else if expect == "key" && token.Type == CSSTokenStr {
-			key = token.Str
+		} else if expect == "key" && token.Type == CSSTokenProp {
+			key = token.Prop
 			expect = ":"
 
 		} else if expect == ":" && token.Type == CSSTokenOperator && token.Operator == ":" {
@@ -145,25 +160,26 @@ func genCssClassMap(tokens []CSSToken) (CSSClassMap, error) {
 
 		} else if expect == "val" && (token.Type != CSSTokenOperator || (token.Operator != "}" && token.Operator != ";")) {
 			val = append(val, token)
-			expect = "val|;|}"
+			expect = "val|;"
 
 		} else if expect == "val|;" && (token.Type != CSSTokenOperator || (token.Operator != "}" && token.Operator != ";")) {
 			val = append(val, token)
-			expect = "val|;|}"
+			expect = "val|;"
 
 		} else if expect == "val|;" && token.Type == CSSTokenOperator && token.Operator == ";" {
 			classMap[className][key] = val
 			expect = "key|}"
+			val = []CSSToken{}
 
-		} else if expect == "key|}" && token.Type == CSSTokenStr {
-			key = token.Str
+		} else if expect == "key|}" && token.Type == CSSTokenProp {
+			key = token.Prop
 			expect = ":"
 
 		} else if expect == "key|}" && token.Type == CSSTokenOperator && token.Operator == "}" {
 			expect = "class"
 
 		} else {
-			return classMap, fmt.Errorf("unexpected")
+			return classMap, fmt.Errorf("expect: %s, unexpected: %v", expect, token)
 		}
 	}
 
@@ -204,42 +220,49 @@ func checkCssPropRule(classMap CSSClassMap) error {
 	return nil
 }
 
-func transformCssProp(classMap CSSClassMap) {
-	for cname, cpropMap := range classMap {
-		// margin
-		if marginTokens, ok := cpropMap["margin"]; ok {
-			if len(marginTokens) == 1 {
-				mtoken := marginTokens[0]
-				newMarginTokens := CSSPropVal{
-					mtoken, mtoken, mtoken, mtoken,
-				}
-				classMap[cname]["margin"] = newMarginTokens
-			} else if len(marginTokens) == 2 {
-				mtokenTB := marginTokens[0]
-				mtokenLR := marginTokens[1]
-				newMarginTokens := CSSPropVal{
-					mtokenTB, mtokenLR, mtokenTB, mtokenLR,
-				}
-				classMap[cname]["margin"] = newMarginTokens
-			}
+func coverCssProp(classMap CSSClassMap) {
+	var tprops = []string{"margin", "padding", "border-width", "border-color"}
+	var pattern = regexp.MustCompile("^([a-z]+)")
 
-			// padding
-		} else if paddingTokens, ok := cpropMap["padding"]; ok {
-			if len(paddingTokens) == 1 {
-				ptoken := paddingTokens[0]
-				newPaddingTokens := CSSPropVal{
-					ptoken, ptoken, ptoken, ptoken,
-				}
-				classMap[cname]["padding"] = newPaddingTokens
-			} else if len(paddingTokens) == 2 {
-				ptokenTB := paddingTokens[0]
-				ptokenLR := paddingTokens[1]
-				newPaddingTokens := CSSPropVal{
-					ptokenTB, ptokenLR, ptokenTB, ptokenLR,
-				}
-				classMap[cname]["padding"] = newPaddingTokens
-			}
+	for _, cpropMap := range classMap {
+		for _, tprop := range tprops {
+			if tokens, ok := cpropMap[tprop]; ok {
+				var left, right, top, bottom CSSToken
 
+				if len(tokens) == 1 {
+					left = tokens[0]
+					right = left
+					top = left
+					bottom = left
+				} else if len(tokens) == 2 {
+					top = tokens[0]
+					bottom = tokens[0]
+					left = tokens[1]
+					right = left
+				} else if len(tokens) == 4 {
+					top = tokens[0]
+					right = tokens[1]
+					bottom = tokens[2]
+					left = tokens[3]
+				}
+
+				tleftProp := pattern.ReplaceAllString(tprop, "$1-left")
+				if _, ok := cpropMap[tleftProp]; !ok {
+					cpropMap[tleftProp] = []CSSToken{left}
+				}
+				trightProp := pattern.ReplaceAllString(tprop, "$1-right")
+				if _, ok := cpropMap[trightProp]; !ok {
+					cpropMap[trightProp] = []CSSToken{right}
+				}
+				ttopProp := pattern.ReplaceAllString(tprop, "$1-top")
+				if _, ok := cpropMap[ttopProp]; !ok {
+					cpropMap[ttopProp] = []CSSToken{top}
+				}
+				tbottomProp := pattern.ReplaceAllString(tprop, "$1-bottom")
+				if _, ok := cpropMap[tbottomProp]; !ok {
+					cpropMap[tbottomProp] = []CSSToken{bottom}
+				}
+			}
 		}
 	}
 }
@@ -313,6 +336,19 @@ func tokenizeCss(css string) ([]CSSToken, error) {
 			})
 			pos += len(variable) + 5
 
+			// prop
+		} else if matches := cssPattern.prop.FindStringSubmatch(left); len(matches) > 0 {
+			operator := matches[1]
+			prop := matches[2]
+			tokens = append(tokens, CSSToken{
+				Type:     CSSTokenOperator,
+				Operator: operator,
+			}, CSSToken{
+				Type: CSSTokenProp,
+				Prop: prop,
+			})
+			pos += len(matches[0])
+
 			// func
 		} else if matches := cssPattern.funct.FindStringSubmatch(left); len(matches) > 0 {
 			funcName := matches[1]
@@ -383,9 +419,9 @@ func tokenizeCss(css string) ([]CSSToken, error) {
 			})
 			pos += len(matches[0])
 
-			// space
-		} else if ch == ' ' {
-			pos += 1
+			// whitespace characters
+		} else if matches := cssPattern.whitespace.FindStringSubmatch(left); len(matches) > 0 {
+			pos += len(matches[0])
 
 			// others
 		} else {
