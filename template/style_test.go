@@ -16,6 +16,7 @@ type tokenizeCssTestCase struct {
 type parseCssTestCase struct {
 	str      string
 	classMap CSSClassMap
+	err      string
 }
 
 var (
@@ -421,6 +422,48 @@ var (
 	}
 
 	parseCssTestCases = []parseCssTestCase{
+		// -------------- errors ---------------
+		{
+			str: ".class1",
+			err: "css.unexpectedEnd",
+		},
+		{
+			str: ".class1 {",
+			err: "css.unexpectedEnd",
+		},
+		{
+			str: ".class1 {margin",
+			err: "css.unexpectedEnd",
+		},
+		{
+			str: ".class1 {margin:",
+			err: "css.unexpectedEnd",
+		},
+		{
+			str: ".class1 {margin: 1ch",
+			err: "css.unexpectedEnd",
+		},
+		{
+			str: ".class1 {margin: 1ch;",
+			err: "css.unexpectedEnd",
+		},
+		{
+			str: ".class1 .class2",
+			err: "css.unexpectedToken",
+		},
+		{
+			str: ".class1 abc",
+			err: "css.unexpectedToken",
+		},
+		{
+			str: ".class1 {margin margin",
+			err: "css.unexpectedToken",
+		},
+		{
+			str: ".class1 {margin: }",
+			err: "css.unexpectedToken",
+		},
+
 		// -------------- margin ---------------
 		{
 			str: ".class1 {\nmargin: 1ch;\n}",
@@ -1406,6 +1449,11 @@ func TestParseCss(t *testing.T) {
 		fmt.Printf("css: %s\n", str)
 		realClassMap, err = parseCss(str)
 		if err != nil {
+			if tpe, ok := err.(*TplParseError); ok {
+				if testCase.err != "" && tpe.err == testCase.err {
+					continue
+				}
+			}
 			t.Fatalf("error: %s", err)
 		} else if !isCssClassMapEqual(realClassMap, testCase.classMap) {
 			spew.Dump(realClassMap)

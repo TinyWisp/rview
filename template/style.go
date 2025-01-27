@@ -81,7 +81,7 @@ var (
 		color:      regexp.MustCompile("^#[0-9a-fA-F]{6}"),
 		funct:      regexp.MustCompile(`^([a-zA-Z_][a-zA-Z0-9_]*)\(`),
 		operator:   regexp.MustCompile(`^[+\-*/(){}:;]`),
-		prop:       regexp.MustCompile(`^(;|\{)\s+([a-zA-Z0-9_\-]+)`),
+		prop:       regexp.MustCompile(`^(;|\{)\s*([a-zA-Z0-9_\-]+)`),
 		str:        regexp.MustCompile(`^[^\s:;.{}()+\-*/]+`),
 		class:      regexp.MustCompile(`^\.([0-9a-zA-Z_\-]+)`),
 		variable:   regexp.MustCompile(`^var\(.*?\)`),
@@ -122,6 +122,9 @@ func parseCss(css string) (CSSClassMap, error) {
 
 	classMap, err2 := genCssClassMap(tokens)
 	if err2 != nil {
+		if tpe, ok := err2.(*TplParseError); ok {
+			tpe.SetTpl(css)
+		}
 		return nil, err2
 	}
 
@@ -179,8 +182,12 @@ func genCssClassMap(tokens []CSSToken) (CSSClassMap, error) {
 			expect = "class"
 
 		} else {
-			return classMap, fmt.Errorf("expect: %s, unexpected: %v", expect, token)
+			return classMap, NewTplParseError("css.unexpectedToken", token.Pos)
 		}
+	}
+
+	if expect != "class" {
+		return classMap, NewTplParseError("css.unexpectedEnd", -1)
 	}
 
 	return classMap, nil
