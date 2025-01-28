@@ -9,6 +9,11 @@ var ErrorMap = map[string]string{
 	"css.mismatchedBrace": "mismatched brace",
 	"css.unexpectedToken": "unexpected token",
 	"css.unexpectedEnd":   "unexpected end",
+	"css.unsupportedProp": "unsupported property",
+	"css.invalidPropVal": "invalid property value",
+	"css.mismatchedSingleQuote": "mismatched single quotation mark",
+	"css.mismatchedDoubleQuote": "mismatched double quotation mark",
+	"css.mismatchedParenthesis": "mismatched parenthesis",
 }
 
 type TplParseError struct {
@@ -17,8 +22,9 @@ type TplParseError struct {
 	err string
 }
 
-func NewTplParseError(err string, pos int) *TplParseError {
+func NewTplParseError(tpl string, err string, pos int) *TplParseError {
 	return &TplParseError{
+		tpl: tpl,
 		err: err,
 		pos: pos,
 	}
@@ -32,9 +38,6 @@ func (tpe *TplParseError) Error() string {
 	} else {
 		msg = tpe.err + "\n"
 	}
-	fmt.Println("++++++++++++++++++")
-	fmt.Println(tpe.tpl)
-	fmt.Println(tpe.pos)
 
 	if tpe.pos == -1 {
 		tpe.pos = len(tpe.tpl) - 1

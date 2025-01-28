@@ -1,7 +1,6 @@
 package template
 
 import (
-	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -81,7 +80,7 @@ var (
 		color:      regexp.MustCompile("^#[0-9a-fA-F]{6}"),
 		funct:      regexp.MustCompile(`^([a-zA-Z_][a-zA-Z0-9_]*)\(`),
 		operator:   regexp.MustCompile(`^[+\-*/(){}:;]`),
-		prop:       regexp.MustCompile(`^(;|\{)\s*([a-zA-Z0-9_\-]+)`),
+		prop:       regexp.MustCompile(`^(;|\{)(\s*)([a-zA-Z0-9_\-]+)`),
 		str:        regexp.MustCompile(`^[^\s:;.{}()+\-*/]+`),
 		class:      regexp.MustCompile(`^\.([0-9a-zA-Z_\-]+)`),
 		variable:   regexp.MustCompile(`^var\(.*?\)`),
@@ -130,6 +129,9 @@ func parseCss(css string) (CSSClassMap, error) {
 
 	err3 := checkCssPropRule(classMap)
 	if err3 != nil {
+		if tpe, ok := err3.(*TplParseError); ok {
+			tpe.SetTpl(css)
+		}
 		return nil, err3
 	}
 
@@ -156,6 +158,9 @@ func genCssClassMap(tokens []CSSToken) (CSSClassMap, error) {
 
 		} else if expect == "key" && token.Type == CSSTokenProp {
 			key = token.Prop
+			if _, ok := propRuleMap[key]; !ok && !strings.HasPrefix(key, "--") {
+				return classMap, NewTplParseError("", "css.unsupportedProp", token.Pos)
+			}
 			expect = ":"
 
 		} else if expect == ":" && token.Type == CSSTokenOperator && token.Operator == ":" {
@@ -176,18 +181,21 @@ func genCssClassMap(tokens []CSSToken) (CSSClassMap, error) {
 
 		} else if expect == "key|}" && token.Type == CSSTokenProp {
 			key = token.Prop
+			if _, ok := propRuleMap[key]; !ok && !strings.HasPrefix(key, "--") {
+				return classMap, NewTplParseError("", "css.unsupportedProp", token.Pos)
+			}
 			expect = ":"
 
 		} else if expect == "key|}" && token.Type == CSSTokenOperator && token.Operator == "}" {
 			expect = "class"
 
 		} else {
-			return classMap, NewTplParseError("css.unexpectedToken", token.Pos)
+			return classMap, NewTplParseError("", "css.unexpectedToken", token.Pos)
 		}
 	}
 
 	if expect != "class" {
-		return classMap, NewTplParseError("css.unexpectedEnd", -1)
+		return classMap, NewTplParseError("", "css.unexpectedEnd", -1)
 	}
 
 	return classMap, nil
@@ -199,10 +207,7 @@ func checkCssPropRule(classMap CSSClassMap) error {
 			if strings.HasPrefix(pkey, "--") {
 				continue
 			}
-			rules, ok := propRuleMap[pkey]
-			if !ok {
-				return fmt.Errorf("invalid prop: %s", pkey)
-			}
+			rules := propRuleMap[pkey]
 			valid := false
 			for _, rule := range rules {
 				if len(pval) != len(rule) {
@@ -219,6 +224,8 @@ func checkCssPropRule(classMap CSSClassMap) error {
 				}
 				if valid {
 					break
+				} else {
+					return NewTplParseError("", "css.invalidPropVal", pval[0].Pos)
 				}
 			}
 		}
@@ -287,6 +294,7 @@ func tokenizeCss(css string) ([]CSSToken, error) {
 
 		// string literal
 		if ch == '\'' {
+			match := false
 			for end := pos + 1; end < blen; end++ {
 				if byteArr[end] == '\'' && byteArr[end-1] != '\\' {
 					tokens = append(tokens, CSSToken{
@@ -295,12 +303,17 @@ func tokenizeCss(css string) ([]CSSToken, error) {
 						Pos:  pos,
 					})
 					pos = end + 1
+					match = true
 					break
 				}
+			}
+			if !match {
+				return tokens, NewTplParseError(css, "css.mismatchedSingleQuote", pos)
 			}
 
 			// string literal
 		} else if ch == '"' {
+			match := false
 			for end := pos + 1; end < blen; end++ {
 				if byteArr[end] == '"' && byteArr[end-1] != '\\' {
 					tokens = append(tokens, CSSToken{
@@ -309,8 +322,12 @@ func tokenizeCss(css string) ([]CSSToken, error) {
 						Pos:  pos,
 					})
 					pos = end + 1
+					match = true
 					break
 				}
+			}
+			if !match {
+				return tokens, NewTplParseError(css, "css.mismatchedDoubleQuote", pos)
 			}
 
 			// color
@@ -346,13 +363,16 @@ func tokenizeCss(css string) ([]CSSToken, error) {
 			// prop
 		} else if matches := cssPattern.prop.FindStringSubmatch(left); len(matches) > 0 {
 			operator := matches[1]
-			prop := matches[2]
+			white := matches[2]
+			prop := matches[3]
 			tokens = append(tokens, CSSToken{
 				Type:     CSSTokenOperator,
 				Operator: operator,
+				Pos: pos,
 			}, CSSToken{
 				Type: CSSTokenProp,
 				Prop: prop,
+				Pos: pos + len(operator) + len(white),
 			})
 			pos += len(matches[0])
 
@@ -387,7 +407,7 @@ func tokenizeCss(css string) ([]CSSToken, error) {
 			}
 
 			if bracketNum > 0 {
-				return tokens, fmt.Errorf("unmatched bracket")
+				return tokens, NewTplParseError(css, "css.mismatchedParenthesis", pos + len(funcName))
 			}
 
 			// num
@@ -396,7 +416,7 @@ func tokenizeCss(css string) ([]CSSToken, error) {
 			unitStr := matches[2]
 			unit, ok := cssUnitMap[unitStr]
 			if !ok {
-				return tokens, fmt.Errorf("unexpected token: %s", left)
+				return tokens, NewTplParseError(css, "css.unexpectedToken", pos)
 			}
 
 			tokens = append(tokens, CSSToken{
@@ -432,7 +452,7 @@ func tokenizeCss(css string) ([]CSSToken, error) {
 
 			// others
 		} else {
-			return tokens, fmt.Errorf("unexpected token: %s", left)
+			return tokens, NewTplParseError(css, "css.unexpectedToken", pos)
 		}
 
 		if pos > blen-1 {

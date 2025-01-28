@@ -463,6 +463,22 @@ var (
 			str: ".class1 {margin: }",
 			err: "css.unexpectedToken",
 		},
+		{
+			str: ".class1 {abc:15ch;}",
+			err: "css.unsupportedProp",
+		},
+		{
+			str: ".class1 {abc:15ch;}",
+			err: "css.unsupportedProp",
+		},
+		{
+			str: ".class1 {margin: #ff0000;}",
+			err: "css.invalidPropVal",
+		},
+		{
+			str: ".class1 {width: calc(3ch+",
+			err: "css.mismatchedParenthesis",
+		},
 
 		// -------------- margin ---------------
 		{
