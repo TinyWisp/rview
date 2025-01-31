@@ -308,7 +308,7 @@ func tokenizeCss(css string) ([]CSSToken, error) {
 				}
 			}
 			if !match {
-				return tokens, NewTplParseError(css, "css.mismatchedSingleQuote", pos)
+				return tokens, NewTplParseError(css, "css.mismatchedSingleQuotationMark", pos)
 			}
 
 			// string literal
@@ -327,7 +327,7 @@ func tokenizeCss(css string) ([]CSSToken, error) {
 				}
 			}
 			if !match {
-				return tokens, NewTplParseError(css, "css.mismatchedDoubleQuote", pos)
+				return tokens, NewTplParseError(css, "css.mismatchedDoubleQuotationMark", pos)
 			}
 
 			// color
@@ -368,11 +368,11 @@ func tokenizeCss(css string) ([]CSSToken, error) {
 			tokens = append(tokens, CSSToken{
 				Type:     CSSTokenOperator,
 				Operator: operator,
-				Pos: pos,
+				Pos:      pos,
 			}, CSSToken{
 				Type: CSSTokenProp,
 				Prop: prop,
-				Pos: pos + len(operator) + len(white),
+				Pos:  pos + len(operator) + len(white),
 			})
 			pos += len(matches[0])
 
@@ -407,7 +407,7 @@ func tokenizeCss(css string) ([]CSSToken, error) {
 			}
 
 			if bracketNum > 0 {
-				return tokens, NewTplParseError(css, "css.mismatchedParenthesis", pos + len(funcName))
+				return tokens, NewTplParseError(css, "css.mismatchedParenthesis", pos+len(funcName))
 			}
 
 			// num

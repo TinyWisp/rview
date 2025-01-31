@@ -506,6 +506,29 @@ var (
 			},
 		},
 		{
+			str: "a + b * 3",
+			exp: TplExp{
+				Type:     TplExpCalc,
+				Operator: "+",
+				Left: &TplExp{
+					Type:     TplExpVar,
+					Variable: "a",
+				},
+				Right: &TplExp{
+					Type:     TplExpCalc,
+					Operator: "*",
+					Left: &TplExp{
+						Type:     TplExpVar,
+						Variable: "b",
+					},
+					Right: &TplExp{
+						Type: TplExpInt,
+						Int:  3,
+					},
+				},
+			},
+		},
+		{
 			str: "(((a + b)*c)+d)+e",
 			exp: TplExp{
 				Type:     TplExpCalc,
@@ -701,6 +724,187 @@ var (
 				},
 			},
 		},
+		{
+			str: "var1 ? a : b",
+			exp: TplExp{
+				Type:     TplExpCalc,
+				Operator: "?",
+				TenaryCondition: &TplExp{
+					Type:     TplExpVar,
+					Variable: "var1",
+				},
+				Left: &TplExp{
+					Type:     TplExpVar,
+					Variable: "a",
+				},
+				Right: &TplExp{
+					Type:     TplExpVar,
+					Variable: "b",
+				},
+			},
+		},
+		{
+			str: "a + b > 3 ? c + d : e * f",
+			exp: TplExp{
+				Type:     TplExpCalc,
+				Operator: "?",
+				TenaryCondition: &TplExp{
+					Type:     TplExpCalc,
+					Operator: ">",
+					Left: &TplExp{
+						Type:     TplExpCalc,
+						Operator: "+",
+						Left: &TplExp{
+							Type:     TplExpVar,
+							Variable: "a",
+						},
+						Right: &TplExp{
+							Type:     TplExpVar,
+							Variable: "b",
+						},
+					},
+					Right: &TplExp{
+						Type: TplExpInt,
+						Int:  3,
+					},
+				},
+				Left: &TplExp{
+					Type:     TplExpCalc,
+					Operator: "+",
+					Left: &TplExp{
+						Type:     TplExpVar,
+						Variable: "c",
+					},
+					Right: &TplExp{
+						Type:     TplExpVar,
+						Variable: "d",
+					},
+				},
+				Right: &TplExp{
+					Type:     TplExpCalc,
+					Operator: "*",
+					Left: &TplExp{
+						Type:     TplExpVar,
+						Variable: "e",
+					},
+					Right: &TplExp{
+						Type:     TplExpVar,
+						Variable: "f",
+					},
+				},
+			},
+		},
+		{
+			str: "a + b > 3 ? (c + d < 5 ? -1 : -2) : (e * f < 10 ? -3 : -4)",
+			exp: TplExp{
+				Type:     TplExpCalc,
+				Operator: "?",
+				TenaryCondition: &TplExp{
+					Type:     TplExpCalc,
+					Operator: ">",
+					Left: &TplExp{
+						Type:     TplExpCalc,
+						Operator: "+",
+						Left: &TplExp{
+							Type:     TplExpVar,
+							Variable: "a",
+						},
+						Right: &TplExp{
+							Type:     TplExpVar,
+							Variable: "b",
+						},
+					},
+					Right: &TplExp{
+						Type: TplExpInt,
+						Int:  3,
+					},
+				},
+				Left: &TplExp{
+					Type:     TplExpCalc,
+					Operator: "?",
+					TenaryCondition: &TplExp{
+						Type:     TplExpCalc,
+						Operator: "<",
+						Left: &TplExp{
+							Type:     TplExpCalc,
+							Operator: "+",
+							Left: &TplExp{
+								Type:     TplExpVar,
+								Variable: "c",
+							},
+							Right: &TplExp{
+								Type:     TplExpVar,
+								Variable: "d",
+							},
+						},
+						Right: &TplExp{
+							Type: TplExpInt,
+							Int:  5,
+						},
+					},
+					Left: &TplExp{
+						Type:     TplExpCalc,
+						Operator: "-",
+						Left:     nil,
+						Right: &TplExp{
+							Type: TplExpInt,
+							Int:  1,
+						},
+					},
+					Right: &TplExp{
+						Type:     TplExpCalc,
+						Operator: "-",
+						Left:     nil,
+						Right: &TplExp{
+							Type: TplExpInt,
+							Int:  2,
+						},
+					},
+				},
+				Right: &TplExp{
+					Type:     TplExpCalc,
+					Operator: "?",
+					TenaryCondition: &TplExp{
+						Type:     TplExpCalc,
+						Operator: "<",
+						Left: &TplExp{
+							Type:     TplExpCalc,
+							Operator: "*",
+							Left: &TplExp{
+								Type:     TplExpVar,
+								Variable: "e",
+							},
+							Right: &TplExp{
+								Type:     TplExpVar,
+								Variable: "f",
+							},
+						},
+						Right: &TplExp{
+							Type: TplExpInt,
+							Int:  10,
+						},
+					},
+					Left: &TplExp{
+						Type:     TplExpCalc,
+						Operator: "-",
+						Left:     nil,
+						Right: &TplExp{
+							Type: TplExpInt,
+							Int:  3,
+						},
+					},
+					Right: &TplExp{
+						Type:     TplExpCalc,
+						Operator: "-",
+						Left:     nil,
+						Right: &TplExp{
+							Type: TplExpInt,
+							Int:  4,
+						},
+					},
+				},
+			},
+		},
 	}
 )
 
@@ -771,6 +975,9 @@ func isTplExpEqual(a TplExp, b TplExp) bool {
 			(a.Right != nil && b.Right == nil) ||
 			(a.Left != nil && b.Left != nil && !isTplExpEqual(*a.Left, *b.Left)) ||
 			(a.Right != nil && b.Right != nil && !isTplExpEqual(*a.Right, *b.Right)) {
+			return false
+		}
+		if a.Operator == "?" && !isTplExpEqual(*a.TenaryCondition, *b.TenaryCondition) {
 			return false
 		}
 	}

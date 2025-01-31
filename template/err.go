@@ -6,14 +6,20 @@ import (
 )
 
 var ErrorMap = map[string]string{
-	"css.mismatchedBrace": "mismatched brace",
-	"css.unexpectedToken": "unexpected token",
-	"css.unexpectedEnd":   "unexpected end",
-	"css.unsupportedProp": "unsupported property",
-	"css.invalidPropVal": "invalid property value",
-	"css.mismatchedSingleQuote": "mismatched single quotation mark",
-	"css.mismatchedDoubleQuote": "mismatched double quotation mark",
-	"css.mismatchedParenthesis": "mismatched parenthesis",
+	"css.mismatchedCurlyBrace":          "mismatched brace",
+	"css.unexpectedToken":               "unexpected token",
+	"css.unexpectedEnd":                 "unexpected end",
+	"css.unsupportedProp":               "unsupported property",
+	"css.invalidPropVal":                "invalid property value",
+	"css.mismatchedSingleQuotationMark": "mismatched single quotation mark",
+	"css.mismatchedDoubleQuotationMark": "mismatched double quotation mark",
+	"css.mismatchedParenthesis":         "mismatched parenthesis",
+
+	"exp.mismatchedCurlyBrace":          "mismatched brace",
+	"exp.mismatchedSingleQuotationMark": "mismatched single quotation mark",
+	"exp.mismatchedDoubleQuotationMark": "mismatched double quotation mark",
+	"exp.mismatchedParenthesis":         "mismatched parenthesis",
+	"exp.unexpectedToken":               "unexpected token",
 }
 
 type TplParseError struct {
