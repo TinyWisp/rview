@@ -11,6 +11,7 @@ import (
 type parseTplExpTestCase struct {
 	str string
 	exp TplExp
+	err string
 }
 
 var (
@@ -36,6 +37,7 @@ var (
 			},
 		},
 		{
+
 			str: "0",
 			exp: TplExp{
 				Type: TplExpInt,
@@ -905,6 +907,54 @@ var (
 				},
 			},
 		},
+		{
+			str: "a+b >",
+			err: "exp.incompleteExpression",
+		},
+		{
+			str: "a+b<",
+			err: "exp.incompleteExpression",
+		},
+		{
+			str: "'hello",
+			err: "exp.mismatchedSingleQuotationMark",
+		},
+		{
+			str: "\"hello",
+			err: "exp.mismatchedDoubleQuotationMark",
+		},
+		{
+			str: "hello'",
+			err: "exp.mismatchedSingleQuotationMark",
+		},
+		{
+			str: "hello\"",
+			err: "exp.mismatchedDoubleQuotationMark",
+		},
+		{
+			str: "(a+b",
+			err: "exp.mismatchedParenthesis",
+		},
+		{
+			str: "a+b)",
+			err: "exp.mismatchedParenthesis",
+		},
+		{
+			str: "(a+b))+c",
+			err: "exp.mismatchedParenthesis",
+		},
+		{
+			str: "a+ b>3 ? c:",
+			err: "exp.incompleteExpression",
+		},
+		{
+			str: "func1(,b)",
+			err: "exp.expectingParameter",
+		},
+		{
+			str: "func1(a,)",
+			err: "exp.expectingParameter",
+		},
 	}
 )
 
@@ -994,6 +1044,11 @@ func TestParseTplExp(t *testing.T) {
 		fmt.Printf("expression: %s\n", str)
 		realExp, err = ParseTplExp(str)
 		if err != nil {
+			if tpe, ok := err.(*TplParseError); ok {
+				if testCase.err != "" && tpe.err == testCase.err {
+					continue
+				}
+			}
 			t.Fatalf("error: %s", err)
 		} else if !isTplExpEqual(*realExp, testCase.exp) {
 			spew.Dump(*realExp)

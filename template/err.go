@@ -20,6 +20,9 @@ var ErrorMap = map[string]string{
 	"exp.mismatchedDoubleQuotationMark": "mismatched double quotation mark",
 	"exp.mismatchedParenthesis":         "mismatched parenthesis",
 	"exp.unexpectedToken":               "unexpected token",
+	"exp.incompleteExpression":          "incomplete expression",
+	"exp.invalidTenaryExpression":       "invalid tenary expression",
+	"exp.expectingParameter":            "expecting a parameter",
 }
 
 type TplParseError struct {
@@ -37,6 +40,7 @@ func NewTplParseError(tpl string, err string, pos int) *TplParseError {
 }
 
 func (tpe *TplParseError) Error() string {
+	fmt.Printf("====error:%d:%s\n", tpe.pos, tpe.err)
 	msg := ""
 
 	if err, ok := ErrorMap[tpe.err]; ok {
@@ -48,19 +52,18 @@ func (tpe *TplParseError) Error() string {
 	if tpe.pos == -1 {
 		tpe.pos = len(tpe.tpl) - 1
 	}
-	fmt.Println(tpe.pos)
 
 	lines := strings.Split(tpe.tpl, "\n")
-	lineEndPos := 0
+	lastLineEndPos := 0
 	errRow := 0
-	errCol := 0
+	errCol := tpe.pos
 	for idx := 0; idx < len(lines); idx++ {
-		lineEndPos += len(lines[idx]) + 1
-		if lineEndPos >= tpe.pos {
+		if lastLineEndPos+len(lines[idx]) >= tpe.pos {
 			errRow = idx
-			errCol = tpe.pos - lineEndPos
+			errCol = tpe.pos - lastLineEndPos
 			break
 		}
+		lastLineEndPos += len(lines[idx]) + 1
 	}
 
 	beginLine := errRow - 2
@@ -70,7 +73,7 @@ func (tpe *TplParseError) Error() string {
 	for idx := beginLine; idx <= errRow; idx++ {
 		msg += lines[idx] + "\n"
 	}
-	for idx := 0; idx < errCol-1; idx++ {
+	for idx := 0; idx < errCol; idx++ {
 		msg += " "
 	}
 	msg += "^\n"

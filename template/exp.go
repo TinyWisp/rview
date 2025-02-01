@@ -1,14 +1,10 @@
 package template
 
 import (
-	"fmt"
-
 	"errors"
 	"regexp"
 	"strconv"
 	"strings"
-
-	"github.com/davecgh/go-spew/spew"
 )
 
 var (
@@ -88,6 +84,13 @@ const (
 	TplExpFunc
 	TplExpCalc
 	TplExpMap
+)
+
+type TplExpOperatorDirection int
+
+const (
+	LTR TplExpOperatorDirection = iota
+	RTL
 )
 
 func readTplExp(str string) ([]TplExp, error) {
@@ -260,11 +263,6 @@ func generateTplExpTree(exps []TplExp) (*TplExp, error) {
 
 		exp := exps[pos]
 
-		fmt.Printf("################loop:%d###############\n", pos)
-		spew.Dump(optrStack)
-		spew.Dump(opndStack)
-		spew.Dump(exp)
-
 		// {...}
 		if exp.Type == TplExpOperator && exp.Operator == "{" {
 			bracketEnd := pos
@@ -398,6 +396,9 @@ func generateTplExpTree(exps []TplExp) (*TplExp, error) {
 					if idx == argBegin {
 						return nil, NewTplParseError("", "exp.expectingParameter", exps[idx].Pos)
 					}
+					if len(exps) > idx+1 && exps[idx+1].Operator == ")" {
+						return nil, NewTplParseError("", "exp.expectingParameter", exps[idx+1].Pos)
+					}
 					arg, err := generateTplExpTree(exps[argBegin:idx])
 					if err != nil {
 						return nil, err
@@ -448,10 +449,6 @@ func generateTplExpTree(exps []TplExp) (*TplExp, error) {
 			break
 		}
 
-		fmt.Printf("################reduce###############\n")
-		spew.Dump(optrStack)
-		spew.Dump(opndStack)
-
 		var err error
 		opndStack, optrStack, err = calculate(opndStack, optrStack)
 		if err != nil {
@@ -469,9 +466,18 @@ func calculate(opndStack []*TplExp, optrStack []*TplExp) ([]*TplExp, []*TplExp, 
 
 	optr := optrStack[len(optrStack)-1]
 	switch optr.Operator {
+	case ")":
+		return opndStack, optrStack, NewTplParseError("", "exp.mismatchedParenthesis", optr.Pos)
+
+	case "]":
+		return opndStack, optrStack, NewTplParseError("", "exp.mismatchedSquareBracket", optr.Pos)
+
+	case "}":
+		return opndStack, optrStack, NewTplParseError("", "exp.mismatchedCurlyBracket", optr.Pos)
+
 	case "negative":
 		if len(opndStack) == 0 {
-			return opndStack, optrStack, NewTplParseError("", "exp.unexpectedToken", optr.Pos)
+			return opndStack, optrStack, NewTplParseError("", "exp.incompleteExpression", optr.Pos)
 		}
 		oexp := opndStack[len(opndStack)-1]
 		nexp := &TplExp{
@@ -485,7 +491,7 @@ func calculate(opndStack []*TplExp, optrStack []*TplExp) ([]*TplExp, []*TplExp, 
 
 	case "!":
 		if len(opndStack) == 0 {
-			return opndStack, optrStack, NewTplParseError("", "exp.unexpectedToken", optr.Pos)
+			return opndStack, optrStack, NewTplParseError("", "exp.incompleteExpression", optr.Pos)
 		}
 		oexp := opndStack[len(opndStack)-1]
 		nexp := &TplExp{
@@ -499,15 +505,12 @@ func calculate(opndStack []*TplExp, optrStack []*TplExp) ([]*TplExp, []*TplExp, 
 
 	case "?":
 		if len(opndStack) < 2 {
-			return opndStack, optrStack, NewTplParseError("", "exp.unexpectedToken", optr.Pos)
+			return opndStack, optrStack, NewTplParseError("", "exp.incompleteExpression", optr.Pos)
 		}
 		exp1 := opndStack[len(opndStack)-1]
 		exp2 := opndStack[len(opndStack)-2]
 		if exp1.Type != TplExpCalc || exp1.Operator != ":" {
-			fmt.Println("-------------------------------")
-			spew.Dump(optrStack)
-			spew.Dump(opndStack)
-			return opndStack, optrStack, NewTplParseError("", "exp.invalidTenaryExp", optr.Pos)
+			return opndStack, optrStack, NewTplParseError("", "exp.invalidTenaryExpression", optr.Pos)
 		}
 		nexp := &TplExp{
 			Type:            TplExpCalc,
@@ -522,7 +525,7 @@ func calculate(opndStack []*TplExp, optrStack []*TplExp) ([]*TplExp, []*TplExp, 
 
 	default:
 		if len(opndStack) < 2 {
-			return opndStack, optrStack, NewTplParseError("", "exp.unexpectedToken", optr.Pos)
+			return opndStack, optrStack, NewTplParseError("", "exp.incompleteExpression", optr.Pos)
 		}
 		exp1 := opndStack[len(opndStack)-1]
 		exp2 := opndStack[len(opndStack)-2]
@@ -538,20 +541,6 @@ func calculate(opndStack []*TplExp, optrStack []*TplExp) ([]*TplExp, []*TplExp, 
 	}
 
 	return opndStack, optrStack, nil
-}
-
-func transformTenaryExp(exp *TplExp) error {
-	if exp.Type != TplExpCalc || exp.Operator != "?" {
-		return nil
-	}
-	if exp.Left == nil || exp.Right == nil || exp.Right.Operator != ":" {
-		return NewTplParseError("", "exp.invalidTenaryExp", exp.Pos)
-	}
-	exp.TenaryCondition = exp.Left
-	exp.Left = exp.Right.Left
-	exp.Right = exp.Right.Right
-
-	return nil
 }
 
 func ParseTplExp(str string) (*TplExp, error) {
