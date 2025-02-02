@@ -23,6 +23,18 @@ var ErrorMap = map[string]string{
 	"exp.incompleteExpression":          "incomplete expression",
 	"exp.invalidTenaryExpression":       "invalid tenary expression",
 	"exp.expectingParameter":            "expecting a parameter",
+
+	"tpl.missingOpeningTag":             "missing opening tag",
+	"tpl.missingClosingTag":             "missing closing tag",
+	"tpl.incompleteTag":                 "incomplete tag",
+	"tpl.mismatchedTag":                 "mismatched tag",
+	"tpl.mismatchedSingleQuotationMark": "mismatched single quotation mark",
+	"tpl.mismatchedDoubleQuotationMark": "mismatched double quotation mark",
+	"tpl.duplicateAttribute":            "duplicate attribute",
+	"tpl.duplicateDirective":            "duplicate directive",
+	"tpl.conflictedDirective":           "conflicted directives",
+	"tpl.duplicateEventHandler":         "duplicate event handler",
+	"tpl.invalidForDirective":           "invalid v-for directive",
 }
 
 type TplParseError struct {
@@ -40,7 +52,6 @@ func NewTplParseError(tpl string, err string, pos int) *TplParseError {
 }
 
 func (tpe *TplParseError) Error() string {
-	fmt.Printf("====error:%d:%s\n", tpe.pos, tpe.err)
 	msg := ""
 
 	if err, ok := ErrorMap[tpe.err]; ok {
@@ -93,4 +104,16 @@ func (tpe *TplParseError) AddOffset(offset int) {
 
 func (tpe *TplParseError) SetTpl(tpl string) {
 	tpe.tpl = tpl
+}
+
+func (tpe *TplParseError) SetPos(pos int) {
+	tpe.pos = pos
+}
+
+func (tpe *TplParseError) IsExpError() bool {
+	return strings.HasPrefix(tpe.err, "exp")
+}
+
+func (tpe *TplParseError) IsCssError() bool {
+	return strings.HasPrefix(tpe.err, "css")
 }

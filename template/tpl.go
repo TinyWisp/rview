@@ -1,9 +1,10 @@
 package template
 
 import (
-	"fmt"
 	"regexp"
 	"strings"
+
+	"github.com/davecgh/go-spew/spew"
 )
 
 var (
@@ -40,87 +41,80 @@ type TplNode struct {
 	Type       TplNodeType
 	TagName    string
 	Children   []*TplNode
-	Binds      map[string]*TplExp
-	Events     map[string]*TplExp
+	Binds      map[string]*Exp
+	Events     map[string]*Exp
 	Attrs      map[string]string
 	Directives map[string]string
 	Text       string
-	Exp        *TplExp
-	If         *TplExp
-	ElseIf     *TplExp
-	Else       *TplExp
+	Exp        *Exp
+	If         *Exp
+	ElseIf     *Exp
+	Else       *Exp
 	For        *TplFor
+	Pos        int
 }
 
 type TplFor struct {
 	Item  string
 	Idx   string
-	Range TplExp
-}
-
-type ParseTplError struct {
-	Tpl string
-	Pos int
-	Msg string
-}
-
-func (pte ParseTplError) Error() string {
-	col := 0
-	text := ""
-	charNum := 0
-	lines := strings.Split(pte.Tpl, "\n")
-	for _, line := range lines {
-		text += line + "\n"
-		charNum += len(line) + 1
-		if charNum >= pte.Pos {
-			col = pte.Pos - (charNum - len(line) - 1)
-			text += strings.Repeat(" ", col)
-			break
-		}
-	}
-
-	return fmt.Sprintf("%s\n%s", text, pte.Msg)
-}
-
-func newParseTplError(tpl string, pos int, msg string) ParseTplError {
-	return ParseTplError{
-		Tpl: tpl,
-		Pos: pos,
-		Msg: msg,
-	}
+	Range Exp
 }
 
 func (tn *TplNode) setAttr(key string, val string) error {
 	// v-if
 	if key == "v-if" {
-		exp, err := ParseTplExp(val)
+		exp, err := ParseExp(val)
 		if err != nil {
 			return err
 		}
-		if tn.If != nil || tn.ElseIf != nil || tn.Else != nil {
-			return fmt.Errorf("conflict")
+		if tn.If != nil {
+			return NewTplParseError("", "tpl.duplicateDirective", 0)
+		}
+		if tn.ElseIf != nil || tn.Else != nil || tn.For != nil {
+			return NewTplParseError("", "tpl.conflictedDirective", 0)
 		}
 		tn.If = exp
 
 		// v-else-if
 	} else if key == "v-else-if" {
-		exp, err := ParseTplExp(val)
+		exp, err := ParseExp(val)
 		if err != nil {
 			return err
+		}
+		if tn.ElseIf != nil {
+			return NewTplParseError("", "tpl.duplicateDirective", 0)
+		}
+		if tn.If != nil || tn.Else != nil || tn.For != nil {
+			return NewTplParseError("", "tpl.conflictedDirective", 0)
 		}
 		tn.ElseIf = exp
 
 		// v-else
 	} else if key == "v-else" {
-		tn.Else = &TplExp{
-			Type:     TplExpVar,
+		if tn.Else != nil {
+			return NewTplParseError("", "tpl.duplicateDirective", 0)
+		}
+		if tn.If != nil || tn.ElseIf != nil || tn.For != nil {
+			return NewTplParseError("", "tpl.conflictedDirective", 0)
+		}
+		tn.Else = &Exp{
+			Type:     ExpVar,
 			Variable: "",
 		}
 
 		// v-for
 	} else if key == "v-for" {
+		if tn.For != nil {
+			return NewTplParseError("", "tpl.duplicateDirective", 0)
+		}
+		if tn.If != nil || tn.ElseIf != nil || tn.Else != nil {
+			return NewTplParseError("", "tpl.conflictedDirective", 0)
+		}
 		matches := tplPattern.vfor.FindStringSubmatch(val)
-		rangeExp, err := ParseTplExp(matches[3])
+		if len(matches) == 0 {
+			return NewTplParseError("", "tpl.invalidForDirective", 0)
+		}
+		rangeExp, err := ParseExp(matches[3])
 		if err != nil {
 			return err
 		}
@@ -133,48 +127,70 @@ func (tn *TplNode) setAttr(key string, val string) error {
 		// v-bind:var
 	} else if strings.HasPrefix(key, "v-bind:") {
 		vname := key[7:]
-		exp, err := ParseTplExp(val)
+		exp, err := ParseExp(val)
 		if err != nil {
 			return err
 		}
 		if tn.Binds == nil {
-			tn.Binds = make(map[string]*TplExp)
+			tn.Binds = make(map[string]*Exp)
+		}
+		if _, ok := tn.Binds[vname]; ok {
+			return NewTplParseError("", "tpl.duplicateAttribute", 0)
+		}
+		if tn.Attrs != nil {
+			if _, ok := tn.Attrs[vname]; ok {
+				return NewTplParseError("", "tpl.duplicateAttribute", 0)
+			}
 		}
 		tn.Binds[vname] = exp
 
 		// :var
 	} else if strings.HasPrefix(key, ":") {
 		vname := key[1:]
-		exp, err := ParseTplExp(val)
+		exp, err := ParseExp(val)
 		if err != nil {
 			return err
 		}
 		if tn.Binds == nil {
-			tn.Binds = make(map[string]*TplExp)
+			tn.Binds = make(map[string]*Exp)
+		}
+		if _, ok := tn.Binds[vname]; ok {
+			return NewTplParseError("", "tpl.duplicateAttribute", 0)
+		}
+		if tn.Attrs != nil {
+			if _, ok := tn.Attrs[vname]; ok {
+				return NewTplParseError("", "tpl.duplicateAttribute", 0)
+			}
 		}
 		tn.Binds[vname] = exp
 
 		// v-on:event
 	} else if strings.HasPrefix(key, "v-on:") {
 		event := key[5:]
-		exp, err := ParseTplExp(val)
+		exp, err := ParseExp(val)
 		if err != nil {
 			return err
 		}
 		if tn.Events == nil {
-			tn.Events = make(map[string]*TplExp)
+			tn.Events = make(map[string]*Exp)
+		}
+		if _, ok := tn.Events[event]; ok {
+			return NewTplParseError("", "tpl.duplicateEventHandler", 0)
 		}
 		tn.Events[event] = exp
 
 		// @event
 	} else if strings.HasPrefix(key, "@") {
 		event := key[1:]
-		exp, err := ParseTplExp(val)
+		exp, err := ParseExp(val)
 		if err != nil {
 			return err
 		}
 		if tn.Events == nil {
-			tn.Events = make(map[string]*TplExp)
+			tn.Events = make(map[string]*Exp)
+		}
+		if _, ok := tn.Events[event]; ok {
+			return NewTplParseError("", "tpl.duplicateEventHandler", 0)
 		}
 		tn.Events[event] = exp
 
@@ -182,6 +198,15 @@ func (tn *TplNode) setAttr(key string, val string) error {
 	} else {
 		if tn.Attrs == nil {
 			tn.Attrs = make(map[string]string)
+		}
+		spew.Dump(tn.Attrs)
+		if _, ok := tn.Attrs[key]; ok {
+			return NewTplParseError("", "tpl.duplicateAttribute", 0)
+		}
+		if tn.Binds != nil {
+			if _, ok := tn.Binds[key]; ok {
+				return NewTplParseError("", "tpl.duplicateAttribute", 0)
+			}
 		}
 		tn.Attrs[key] = val
 	}
@@ -228,6 +253,7 @@ func ParseTpl(tpl string) ([]*TplNode, error) {
 			tagNode := TplNode{
 				Type:    TplNodeTag,
 				TagName: name,
+				Pos:     pos,
 			}
 			tagNodeStack = append(tagNodeStack, &tagNode)
 			isReadingTag = true
@@ -236,6 +262,7 @@ func ParseTpl(tpl string) ([]*TplNode, error) {
 					textNode := TplNode{
 						Type: TplNodeText,
 						Text: trim(text),
+						Pos:  pos - len(text),
 					}
 					text = ""
 					parentTagNode.Children = append(parentTagNode.Children, &textNode)
@@ -260,15 +287,18 @@ func ParseTpl(tpl string) ([]*TplNode, error) {
 
 			// </tag>
 		} else if matches := tplPattern.closingTag.FindStringSubmatch(left); !isReadingTag && len(matches) > 0 {
+			if parentTagNode == nil {
+				return nodeArr, NewTplParseError(tpl, "tpl.missingOpeningTag", pos)
+			}
 			tagName := matches[1]
 			if tagName != parentTagNode.TagName {
-				msg := fmt.Sprintf("opening and ending tag mismatch: %s", tagName)
-				return nodeArr, newParseTplError(tpl, pos, msg)
+				return nodeArr, NewTplParseError(tpl, "tpl.mismatchedTag", pos)
 			}
 			if parentTagNode != nil && trim(text) != "" {
 				textNode := TplNode{
 					Type: TplNodeText,
 					Text: trim(text),
+					Pos:  pos - len(text),
 				}
 				text = ""
 				parentTagNode.Children = append(parentTagNode.Children, &textNode)
@@ -303,16 +333,37 @@ func ParseTpl(tpl string) ([]*TplNode, error) {
 				}
 			}
 			if !complete {
-				msg := fmt.Sprintf("uncomplete attribute:%s", attrKey)
-				return nodeArr, newParseTplError(tpl, pos, msg)
+				if left[klen+1] == '"' {
+					return nodeArr, NewTplParseError(tpl, "tpl.mismatchedDoubleQuotationMark", pos)
+				} else {
+					return nodeArr, NewTplParseError(tpl, "tpl.mismatchedSingleQuotationMark", pos)
+				}
 			}
-			curTagNode.setAttr(attrKey, attrVal)
+			err := curTagNode.setAttr(attrKey, attrVal)
+			if err != nil {
+				if tpe, ok := err.(*TplParseError); ok {
+					tpe.SetTpl(tpl)
+					if tpe.IsExpError() {
+						tpe.AddOffset(pos + klen + 2)
+					} else {
+						tpe.SetPos(pos)
+					}
+				}
+				return nodeArr, err
+			}
 
 			// attritube without value,  like the "enabled" attribute in "<comp enabled>".
 		} else if matches := tplPattern.attrWithoutVal.FindStringSubmatch(left); isReadingTag && len(matches) > 0 {
 			attrKey := matches[1]
 			attrVal := ""
-			curTagNode.setAttr(attrKey, attrVal)
+			err := curTagNode.setAttr(attrKey, attrVal)
+			if err != nil {
+				if tpe, ok := err.(*TplParseError); ok {
+					tpe.SetTpl(tpl)
+					tpe.SetPos(pos)
+				}
+				return nodeArr, err
+			}
 			pos += len(matches[0])
 
 			// {{ ... }}
@@ -321,6 +372,7 @@ func ParseTpl(tpl string) ([]*TplNode, error) {
 				textNode := TplNode{
 					Type: TplNodeText,
 					Text: trim(text),
+					Pos:  pos,
 				}
 				text = ""
 				parentTagNode.Children = append(parentTagNode.Children, &textNode)
@@ -336,13 +388,14 @@ func ParseTpl(tpl string) ([]*TplNode, error) {
 					inDoubleQuote = !inDoubleQuote
 				} else if !inSingleQuote && !inDoubleQuote && left[idx:idx+2] == "}}" {
 					expStr = left[2:idx]
-					exp, err := ParseTplExp(expStr)
+					exp, err := ParseExp(expStr)
 					if err != nil {
 						return nodeArr, err
 					}
 					expNode := TplNode{
 						Type: TplNodeExp,
 						Exp:  exp,
+						Pos:  pos + 2,
 					}
 					parentTagNode.Children = append(parentTagNode.Children, &expNode)
 					pos += idx + 2
@@ -360,8 +413,16 @@ func ParseTpl(tpl string) ([]*TplNode, error) {
 
 			// others
 		} else {
-			return nodeArr, fmt.Errorf("unexpected: %s", left)
+			return nodeArr, NewTplParseError(tpl, "tpl.unexpectedToken", pos)
 		}
+	}
+
+	if isReadingTag && curTagNode != nil {
+		return nodeArr, NewTplParseError(tpl, "tpl.incompleteTag", curTagNode.Pos)
+	}
+
+	if len(tagNodeStack) > 0 {
+		return nodeArr, NewTplParseError(tpl, "tpl.missingClosingTag", tagNodeStack[len(tagNodeStack)-1].Pos)
 	}
 
 	return nodeArr, nil

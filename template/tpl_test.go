@@ -10,10 +10,95 @@ import (
 type parseTplTestCase struct {
 	str string
 	tpl []*TplNode
+	err string
 }
 
 var (
 	parseTplTestCases = []parseTplTestCase{
+		{
+			str: `<div>`,
+			err: "tpl.missingClosingTag",
+		},
+		{
+			str: `<div><div></div>`,
+			err: "tpl.missingClosingTag",
+		},
+		{
+			str: `</div>`,
+			err: "tpl.missingOpeningTag",
+		},
+		{
+			str: `<div></div></div>`,
+			err: "tpl.missingOpeningTag",
+		},
+		{
+			str: `<div></p>`,
+			err: "tpl.mismatchedTag",
+		},
+		{
+			str: `<div key1="val1" key1="val2"></div>`,
+			err: "tpl.duplicateAttribute",
+		},
+		{
+			str: `<div key="hello></div>`,
+			err: "tpl.mismatchedDoubleQuotationMark",
+		},
+		{
+			str: `<div key='hello></div>`,
+			err: "tpl.mismatchedSingleQuotationMark",
+		},
+		{
+			str: `<div key1='hello' key1="abcd"></div>`,
+			err: "tpl.duplicateAttribute",
+		},
+		{
+			str: `<div :key1='hello' key1="abcd"></div>`,
+			err: "tpl.duplicateAttribute",
+		},
+		{
+			str: `<div @click="open()" @click="open()"></div>`,
+			err: "tpl.duplicateEventHandler",
+		},
+		{
+			str: `<div v-on:click="open()" v-on:click="open()"></div>`,
+			err: "tpl.duplicateEventHandler",
+		},
+		{
+			str: `<div @click="open()" v-on:click="open()"></div>`,
+			err: "tpl.duplicateEventHandler",
+		},
+		{
+			str: `<div v-if="a" v-if="b"></div>`,
+			err: "tpl.duplicateDirective",
+		},
+		{
+			str: `<div v-else v-else></div>`,
+			err: "tpl.duplicateDirective",
+		},
+		{
+			str: `<div v-else-if="a" v-else-if="b"></div>`,
+			err: "tpl.duplicateDirective",
+		},
+		{
+			str: `<div v-if="a" v-else></div>`,
+			err: "tpl.conflictedDirective",
+		},
+		{
+			str: `<div v-if="a" v-else-if="b"></div>`,
+			err: "tpl.conflictedDirective",
+		},
+		{
+			str: `<div v-else v-else-if="b"></div>`,
+			err: "tpl.conflictedDirective",
+		},
+		{
+			str: `<div v-for="idx, item := range items" v-for="idx2, item2 := range items2"></div>`,
+			err: "tpl.duplicateDirective",
+		},
+		{
+			str: `<div v-for="abc"></div>`,
+			err: "tpl.invalidForDirective",
+		},
 		{
 			str: `<template></template>`,
 			tpl: []*TplNode{
@@ -54,15 +139,15 @@ var (
 						},
 						{
 							Type: TplNodeExp,
-							Exp: &TplExp{
-								Type:     TplExpCalc,
+							Exp: &Exp{
+								Type:     ExpCalc,
 								Operator: "+",
-								Left: &TplExp{
-									Type:     TplExpVar,
+								Left: &Exp{
+									Type:     ExpVar,
 									Variable: "var1",
 								},
-								Right: &TplExp{
-									Type:     TplExpVar,
+								Right: &Exp{
+									Type:     ExpVar,
 									Variable: "var2",
 								},
 							},
@@ -144,24 +229,24 @@ var (
 						{
 							Type:    TplNodeTag,
 							TagName: "comp-a",
-							If: &TplExp{
-								Type:     TplExpVar,
+							If: &Exp{
+								Type:     ExpVar,
 								Variable: "var1",
 							},
 						},
 						{
 							Type:    TplNodeTag,
 							TagName: "comp-b",
-							ElseIf: &TplExp{
-								Type:     TplExpVar,
+							ElseIf: &Exp{
+								Type:     ExpVar,
 								Variable: "var2",
 							},
 						},
 						{
 							Type:    TplNodeTag,
 							TagName: "comp-c",
-							Else: &TplExp{
-								Type:     TplExpVar,
+							Else: &Exp{
+								Type:     ExpVar,
 								Variable: "",
 							},
 						},
@@ -185,8 +270,8 @@ var (
 							For: &TplFor{
 								Idx:  "idx",
 								Item: "item",
-								Range: TplExp{
-									Type:     TplExpVar,
+								Range: Exp{
+									Type:     ExpVar,
 									Variable: "items",
 								},
 							},
@@ -199,7 +284,7 @@ var (
 )
 
 func isTplForEqual(a TplFor, b TplFor) bool {
-	return a.Idx == b.Idx && a.Item == b.Item && isTplExpEqual(a.Range, b.Range)
+	return a.Idx == b.Idx && a.Item == b.Item && isExpEqual(a.Range, b.Range)
 }
 
 func isTplEqual(a []*TplNode, b []*TplNode) bool {
@@ -222,19 +307,19 @@ func isTplEqual(a []*TplNode, b []*TplNode) bool {
 
 			if (node1.If != nil && node2.If == nil) ||
 				(node1.If == nil && node2.If != nil) ||
-				(node1.If != nil && node2.If != nil && !isTplExpEqual(*node1.If, *node2.If)) {
+				(node1.If != nil && node2.If != nil && !isExpEqual(*node1.If, *node2.If)) {
 				return false
 			}
 
 			if (node1.ElseIf != nil && node2.ElseIf == nil) ||
 				(node1.ElseIf == nil && node2.ElseIf != nil) ||
-				(node1.ElseIf != nil && node2.ElseIf != nil && !isTplExpEqual(*node1.ElseIf, *node2.ElseIf)) {
+				(node1.ElseIf != nil && node2.ElseIf != nil && !isExpEqual(*node1.ElseIf, *node2.ElseIf)) {
 				return false
 			}
 
 			if (node1.Else != nil && node2.Else == nil) ||
 				(node1.Else == nil && node2.Else != nil) ||
-				(node1.Else != nil && node2.Else != nil && !isTplExpEqual(*node1.Else, *node2.Else)) {
+				(node1.Else != nil && node2.Else != nil && !isExpEqual(*node1.Else, *node2.Else)) {
 				return false
 			}
 
@@ -255,7 +340,7 @@ func isTplEqual(a []*TplNode, b []*TplNode) bool {
 					if _, ok := node2.Binds[bkey]; !ok {
 						return false
 					}
-					if !isTplExpEqual(*bval, *node2.Binds[bkey]) {
+					if !isExpEqual(*bval, *node2.Binds[bkey]) {
 						return false
 					}
 				}
@@ -272,7 +357,7 @@ func isTplEqual(a []*TplNode, b []*TplNode) bool {
 					if _, ok := node2.Events[ekey]; !ok {
 						return false
 					}
-					if !isTplExpEqual(*eval, *node2.Events[ekey]) {
+					if !isExpEqual(*eval, *node2.Events[ekey]) {
 						return false
 					}
 				}
@@ -310,9 +395,14 @@ func TestParseTpl(t *testing.T) {
 	var str string
 	for _, testCase := range parseTplTestCases {
 		str = testCase.str
-		fmt.Printf("==========================\ntemplate:\n%s\n", str)
+		fmt.Printf("- - - - - - - - - - - - - - - - -\ntemplate:\n%s\n", str)
 		parsedTpl, err = ParseTpl(str)
 		if err != nil {
+			if tpe, ok := err.(*TplParseError); ok {
+				if testCase.err != "" && tpe.err == testCase.err {
+					continue
+				}
+			}
 			t.Fatalf("error: %s", err)
 		} else if !isTplEqual(parsedTpl, testCase.tpl) {
 			spew.Dump(parsedTpl)

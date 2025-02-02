@@ -8,254 +8,254 @@ import (
 	"github.com/davecgh/go-spew/spew"
 )
 
-type parseTplExpTestCase struct {
+type parseExpTestCase struct {
 	str string
-	exp TplExp
+	exp Exp
 	err string
 }
 
 var (
-	parseTplExpTestCases = []parseTplExpTestCase{
+	parseExpTestCases = []parseExpTestCase{
 		{
 			str: "true",
-			exp: TplExp{
-				Type: TplExpBool,
+			exp: Exp{
+				Type: ExpBool,
 				Bool: true,
 			},
 		},
 		{
 			str: "false",
-			exp: TplExp{
-				Type: TplExpBool,
+			exp: Exp{
+				Type: ExpBool,
 				Bool: false,
 			},
 		},
 		{
 			str: "nil",
-			exp: TplExp{
-				Type: TplExpNil,
+			exp: Exp{
+				Type: ExpNil,
 			},
 		},
 		{
 
 			str: "0",
-			exp: TplExp{
-				Type: TplExpInt,
+			exp: Exp{
+				Type: ExpInt,
 				Int:  0,
 			},
 		},
 		{
 			str: "333",
-			exp: TplExp{
-				Type: TplExpInt,
+			exp: Exp{
+				Type: ExpInt,
 				Int:  333,
 			},
 		},
 		{
 			str: "333.333",
-			exp: TplExp{
-				Type:  TplExpFloat,
+			exp: Exp{
+				Type:  ExpFloat,
 				Float: 333.333,
 			},
 		},
 		{
 			str: `""`,
-			exp: TplExp{
-				Type: TplExpStr,
+			exp: Exp{
+				Type: ExpStr,
 				Str:  "",
 			},
 		},
 		{
 			str: `''`,
-			exp: TplExp{
-				Type: TplExpStr,
+			exp: Exp{
+				Type: ExpStr,
 				Str:  "",
 			},
 		},
 		{
 			str: `"hello, \"world\""`,
-			exp: TplExp{
-				Type: TplExpStr,
+			exp: Exp{
+				Type: ExpStr,
 				Str:  `hello, "world"`,
 			},
 		},
 		{
 			str: `'hello, \'world\''`,
-			exp: TplExp{
-				Type: TplExpStr,
+			exp: Exp{
+				Type: ExpStr,
 				Str:  `hello, 'world'`,
 			},
 		},
 		{
 			str: "v",
-			exp: TplExp{
-				Type:     TplExpVar,
+			exp: Exp{
+				Type:     ExpVar,
 				Variable: "v",
 			},
 		},
 		{
 			str: "var1",
-			exp: TplExp{
-				Type:     TplExpVar,
+			exp: Exp{
+				Type:     ExpVar,
 				Variable: "var1",
 			},
 		},
 		{
 			str: "obj.key",
-			exp: TplExp{
-				Type:     TplExpCalc,
+			exp: Exp{
+				Type:     ExpCalc,
 				Operator: ".",
-				Left: &TplExp{
-					Type:     TplExpVar,
+				Left: &Exp{
+					Type:     ExpVar,
 					Variable: "obj",
 				},
-				Right: &TplExp{
-					Type: TplExpStr,
+				Right: &Exp{
+					Type: ExpStr,
 					Str:  "key",
 				},
 			},
 		},
 		{
 			str: "obj.key.subkey",
-			exp: TplExp{
-				Type:     TplExpCalc,
+			exp: Exp{
+				Type:     ExpCalc,
 				Operator: ".",
-				Left: &TplExp{
-					Type:     TplExpCalc,
+				Left: &Exp{
+					Type:     ExpCalc,
 					Operator: ".",
-					Left: &TplExp{
-						Type:     TplExpVar,
+					Left: &Exp{
+						Type:     ExpVar,
 						Variable: "obj",
 					},
-					Right: &TplExp{
-						Type: TplExpStr,
+					Right: &Exp{
+						Type: ExpStr,
 						Str:  "key",
 					},
 				},
-				Right: &TplExp{
-					Type: TplExpStr,
+				Right: &Exp{
+					Type: ExpStr,
 					Str:  "subkey",
 				},
 			},
 		},
 		{
 			str: "var1[attr1]",
-			exp: TplExp{
-				Type:     TplExpCalc,
+			exp: Exp{
+				Type:     ExpCalc,
 				Operator: "[",
-				Left: &TplExp{
-					Type:     TplExpVar,
+				Left: &Exp{
+					Type:     ExpVar,
 					Variable: "var1",
 				},
-				Right: &TplExp{
-					Type:     TplExpVar,
+				Right: &Exp{
+					Type:     ExpVar,
 					Variable: "attr1",
 				},
 			},
 		},
 		{
 			str: "var1['attr1']",
-			exp: TplExp{
-				Type:     TplExpCalc,
+			exp: Exp{
+				Type:     ExpCalc,
 				Operator: "[",
-				Left: &TplExp{
-					Type:     TplExpVar,
+				Left: &Exp{
+					Type:     ExpVar,
 					Variable: "var1",
 				},
-				Right: &TplExp{
-					Type: TplExpStr,
+				Right: &Exp{
+					Type: ExpStr,
 					Str:  "attr1",
 				},
 			},
 		},
 		{
 			str: "var1[3]",
-			exp: TplExp{
-				Type:     TplExpCalc,
+			exp: Exp{
+				Type:     ExpCalc,
 				Operator: "[",
-				Left: &TplExp{
-					Type:     TplExpVar,
+				Left: &Exp{
+					Type:     ExpVar,
 					Variable: "var1",
 				},
-				Right: &TplExp{
-					Type: TplExpInt,
+				Right: &Exp{
+					Type: ExpInt,
 					Int:  3,
 				},
 			},
 		},
 		{
 			str: "var1[3]['attr1']",
-			exp: TplExp{
-				Type:     TplExpCalc,
+			exp: Exp{
+				Type:     ExpCalc,
 				Operator: "[",
-				Left: &TplExp{
-					Type:     TplExpCalc,
+				Left: &Exp{
+					Type:     ExpCalc,
 					Operator: "[",
-					Left: &TplExp{
-						Type:     TplExpVar,
+					Left: &Exp{
+						Type:     ExpVar,
 						Variable: "var1",
 					},
-					Right: &TplExp{
-						Type: TplExpInt,
+					Right: &Exp{
+						Type: ExpInt,
 						Int:  3,
 					},
 				},
-				Right: &TplExp{
-					Type: TplExpStr,
+				Right: &Exp{
+					Type: ExpStr,
 					Str:  "attr1",
 				},
 			},
 		},
 		{
 			str: "func1()",
-			exp: TplExp{
-				Type:       TplExpFunc,
+			exp: Exp{
+				Type:       ExpFunc,
 				FuncName:   "func1",
-				FuncParams: make([]*TplExp, 0),
+				FuncParams: make([]*Exp, 0),
 			},
 		},
 		{
 			str: `func1("param1", param2, 333, 555.5, true, false, nil, var1.attr)`,
-			exp: TplExp{
-				Type:     TplExpFunc,
+			exp: Exp{
+				Type:     ExpFunc,
 				FuncName: "func1",
-				FuncParams: []*TplExp{
+				FuncParams: []*Exp{
 					{
-						Type: TplExpStr,
+						Type: ExpStr,
 						Str:  "param1",
 					},
 					{
-						Type:     TplExpVar,
+						Type:     ExpVar,
 						Variable: "param2",
 					},
 					{
-						Type: TplExpInt,
+						Type: ExpInt,
 						Int:  333,
 					},
 					{
-						Type:  TplExpFloat,
+						Type:  ExpFloat,
 						Float: 555.5,
 					},
 					{
-						Type: TplExpBool,
+						Type: ExpBool,
 						Bool: true,
 					},
 					{
-						Type: TplExpBool,
+						Type: ExpBool,
 						Bool: false,
 					},
 					{
-						Type: TplExpNil,
+						Type: ExpNil,
 					},
 					{
-						Type:     TplExpCalc,
+						Type:     ExpCalc,
 						Operator: ".",
-						Left: &TplExp{
-							Type:     TplExpVar,
+						Left: &Exp{
+							Type:     ExpVar,
 							Variable: "var1",
 						},
-						Right: &TplExp{
-							Type: TplExpStr,
+						Right: &Exp{
+							Type: ExpStr,
 							Str:  "attr",
 						},
 					},
@@ -264,154 +264,154 @@ var (
 		},
 		{
 			str: "-1",
-			exp: TplExp{
-				Type:     TplExpCalc,
+			exp: Exp{
+				Type:     ExpCalc,
 				Operator: "-",
-				Right: &TplExp{
-					Type: TplExpInt,
+				Right: &Exp{
+					Type: ExpInt,
 					Int:  1,
 				},
 			},
 		},
 		{
 			str: "-var1",
-			exp: TplExp{
-				Type:     TplExpCalc,
+			exp: Exp{
+				Type:     ExpCalc,
 				Operator: "-",
-				Right: &TplExp{
-					Type:     TplExpVar,
+				Right: &Exp{
+					Type:     ExpVar,
 					Variable: "var1",
 				},
 			},
 		},
 		{
 			str: "-func1()",
-			exp: TplExp{
-				Type:     TplExpCalc,
+			exp: Exp{
+				Type:     ExpCalc,
 				Operator: "-",
-				Right: &TplExp{
-					Type:       TplExpFunc,
+				Right: &Exp{
+					Type:       ExpFunc,
 					FuncName:   "func1",
-					FuncParams: make([]*TplExp, 0),
+					FuncParams: make([]*Exp, 0),
 				},
 			},
 		},
 		{
 			str: "!var1",
-			exp: TplExp{
-				Type:     TplExpCalc,
+			exp: Exp{
+				Type:     ExpCalc,
 				Operator: "!",
-				Right: &TplExp{
-					Type:     TplExpVar,
+				Right: &Exp{
+					Type:     ExpVar,
 					Variable: "var1",
 				},
 			},
 		},
 		{
 			str: "var1 >3",
-			exp: TplExp{
-				Type:     TplExpCalc,
+			exp: Exp{
+				Type:     ExpCalc,
 				Operator: ">",
-				Left: &TplExp{
-					Type:     TplExpVar,
+				Left: &Exp{
+					Type:     ExpVar,
 					Variable: "var1",
 				},
-				Right: &TplExp{
-					Type: TplExpInt,
+				Right: &Exp{
+					Type: ExpInt,
 					Int:  3,
 				},
 			},
 		},
 		{
 			str: "var1 >=   3",
-			exp: TplExp{
-				Type:     TplExpCalc,
+			exp: Exp{
+				Type:     ExpCalc,
 				Operator: ">=",
-				Left: &TplExp{
-					Type:     TplExpVar,
+				Left: &Exp{
+					Type:     ExpVar,
 					Variable: "var1",
 				},
-				Right: &TplExp{
-					Type: TplExpInt,
+				Right: &Exp{
+					Type: ExpInt,
 					Int:  3,
 				},
 			},
 		},
 		{
 			str: "var1 <3",
-			exp: TplExp{
-				Type:     TplExpCalc,
+			exp: Exp{
+				Type:     ExpCalc,
 				Operator: "<",
-				Left: &TplExp{
-					Type:     TplExpVar,
+				Left: &Exp{
+					Type:     ExpVar,
 					Variable: "var1",
 				},
-				Right: &TplExp{
-					Type: TplExpInt,
+				Right: &Exp{
+					Type: ExpInt,
 					Int:  3,
 				},
 			},
 		},
 		{
 			str: "var1<=3",
-			exp: TplExp{
-				Type:     TplExpCalc,
+			exp: Exp{
+				Type:     ExpCalc,
 				Operator: "<=",
-				Left: &TplExp{
-					Type:     TplExpVar,
+				Left: &Exp{
+					Type:     ExpVar,
 					Variable: "var1",
 				},
-				Right: &TplExp{
-					Type: TplExpInt,
+				Right: &Exp{
+					Type: ExpInt,
 					Int:  3,
 				},
 			},
 		},
 		{
 			str: "var1 == 3.14159",
-			exp: TplExp{
-				Type:     TplExpCalc,
+			exp: Exp{
+				Type:     ExpCalc,
 				Operator: "==",
-				Left: &TplExp{
-					Type:     TplExpVar,
+				Left: &Exp{
+					Type:     ExpVar,
 					Variable: "var1",
 				},
-				Right: &TplExp{
-					Type:  TplExpFloat,
+				Right: &Exp{
+					Type:  ExpFloat,
 					Float: 3.14159,
 				},
 			},
 		},
 		{
 			str: "var1 != 3.14159",
-			exp: TplExp{
-				Type:     TplExpCalc,
+			exp: Exp{
+				Type:     ExpCalc,
 				Operator: "!=",
-				Left: &TplExp{
-					Type:     TplExpVar,
+				Left: &Exp{
+					Type:     ExpVar,
 					Variable: "var1",
 				},
-				Right: &TplExp{
-					Type:  TplExpFloat,
+				Right: &Exp{
+					Type:  ExpFloat,
 					Float: 3.14159,
 				},
 			},
 		},
 		{
 			str: "var1 && !var2",
-			exp: TplExp{
-				Type:     TplExpCalc,
+			exp: Exp{
+				Type:     ExpCalc,
 				Operator: "&&",
-				Left: &TplExp{
-					Type:     TplExpVar,
+				Left: &Exp{
+					Type:     ExpVar,
 					Variable: "var1",
 				},
-				Right: &TplExp{
-					Type:     TplExpCalc,
+				Right: &Exp{
+					Type:     ExpCalc,
 					Operator: "!",
 					Left:     nil,
-					Right: &TplExp{
-						Type:     TplExpVar,
+					Right: &Exp{
+						Type:     ExpVar,
 						Variable: "var2",
 					},
 				},
@@ -419,19 +419,19 @@ var (
 		},
 		{
 			str: "var1 || !var2",
-			exp: TplExp{
-				Type:     TplExpCalc,
+			exp: Exp{
+				Type:     ExpCalc,
 				Operator: "||",
-				Left: &TplExp{
-					Type:     TplExpVar,
+				Left: &Exp{
+					Type:     ExpVar,
 					Variable: "var1",
 				},
-				Right: &TplExp{
-					Type:     TplExpCalc,
+				Right: &Exp{
+					Type:     ExpCalc,
 					Operator: "!",
 					Left:     nil,
-					Right: &TplExp{
-						Type:     TplExpVar,
+					Right: &Exp{
+						Type:     ExpVar,
 						Variable: "var2",
 					},
 				},
@@ -439,30 +439,30 @@ var (
 		},
 		{
 			str: "var1 == 3.14159 && var2 >= var1",
-			exp: TplExp{
-				Type:     TplExpCalc,
+			exp: Exp{
+				Type:     ExpCalc,
 				Operator: "&&",
-				Left: &TplExp{
-					Type:     TplExpCalc,
+				Left: &Exp{
+					Type:     ExpCalc,
 					Operator: "==",
-					Left: &TplExp{
-						Type:     TplExpVar,
+					Left: &Exp{
+						Type:     ExpVar,
 						Variable: "var1",
 					},
-					Right: &TplExp{
-						Type:  TplExpFloat,
+					Right: &Exp{
+						Type:  ExpFloat,
 						Float: 3.14159,
 					},
 				},
-				Right: &TplExp{
-					Type:     TplExpCalc,
+				Right: &Exp{
+					Type:     ExpCalc,
 					Operator: ">=",
-					Left: &TplExp{
-						Type:     TplExpVar,
+					Left: &Exp{
+						Type:     ExpVar,
 						Variable: "var2",
 					},
-					Right: &TplExp{
-						Type:     TplExpVar,
+					Right: &Exp{
+						Type:     ExpVar,
 						Variable: "var1",
 					},
 				},
@@ -470,38 +470,38 @@ var (
 		},
 		{
 			str: "var1+ 111 + (var2 -var3)*5",
-			exp: TplExp{
-				Type:     TplExpCalc,
+			exp: Exp{
+				Type:     ExpCalc,
 				Operator: "+",
-				Left: &TplExp{
-					Type:     TplExpCalc,
+				Left: &Exp{
+					Type:     ExpCalc,
 					Operator: "+",
-					Left: &TplExp{
-						Type:     TplExpVar,
+					Left: &Exp{
+						Type:     ExpVar,
 						Variable: "var1",
 					},
-					Right: &TplExp{
-						Type: TplExpInt,
+					Right: &Exp{
+						Type: ExpInt,
 						Int:  111,
 					},
 				},
-				Right: &TplExp{
-					Type:     TplExpCalc,
+				Right: &Exp{
+					Type:     ExpCalc,
 					Operator: "*",
-					Left: &TplExp{
-						Type:     TplExpCalc,
+					Left: &Exp{
+						Type:     ExpCalc,
 						Operator: "-",
-						Left: &TplExp{
-							Type:     TplExpVar,
+						Left: &Exp{
+							Type:     ExpVar,
 							Variable: "var2",
 						},
-						Right: &TplExp{
-							Type:     TplExpVar,
+						Right: &Exp{
+							Type:     ExpVar,
 							Variable: "var3",
 						},
 					},
-					Right: &TplExp{
-						Type: TplExpInt,
+					Right: &Exp{
+						Type: ExpInt,
 						Int:  5,
 					},
 				},
@@ -509,22 +509,22 @@ var (
 		},
 		{
 			str: "a + b * 3",
-			exp: TplExp{
-				Type:     TplExpCalc,
+			exp: Exp{
+				Type:     ExpCalc,
 				Operator: "+",
-				Left: &TplExp{
-					Type:     TplExpVar,
+				Left: &Exp{
+					Type:     ExpVar,
 					Variable: "a",
 				},
-				Right: &TplExp{
-					Type:     TplExpCalc,
+				Right: &Exp{
+					Type:     ExpCalc,
 					Operator: "*",
-					Left: &TplExp{
-						Type:     TplExpVar,
+					Left: &Exp{
+						Type:     ExpVar,
 						Variable: "b",
 					},
-					Right: &TplExp{
-						Type: TplExpInt,
+					Right: &Exp{
+						Type: ExpInt,
 						Int:  3,
 					},
 				},
@@ -532,57 +532,57 @@ var (
 		},
 		{
 			str: "(((a + b)*c)+d)+e",
-			exp: TplExp{
-				Type:     TplExpCalc,
+			exp: Exp{
+				Type:     ExpCalc,
 				Operator: "+",
-				Left: &TplExp{
-					Type:     TplExpCalc,
+				Left: &Exp{
+					Type:     ExpCalc,
 					Operator: "+",
-					Left: &TplExp{
-						Type:     TplExpCalc,
+					Left: &Exp{
+						Type:     ExpCalc,
 						Operator: "*",
-						Left: &TplExp{
-							Type:     TplExpCalc,
+						Left: &Exp{
+							Type:     ExpCalc,
 							Operator: "+",
-							Left: &TplExp{
-								Type:     TplExpVar,
+							Left: &Exp{
+								Type:     ExpVar,
 								Variable: "a",
 							},
-							Right: &TplExp{
-								Type:     TplExpVar,
+							Right: &Exp{
+								Type:     ExpVar,
 								Variable: "b",
 							},
 						},
-						Right: &TplExp{
-							Type:     TplExpVar,
+						Right: &Exp{
+							Type:     ExpVar,
 							Variable: "c",
 						},
 					},
-					Right: &TplExp{
-						Type:     TplExpVar,
+					Right: &Exp{
+						Type:     ExpVar,
 						Variable: "d",
 					},
 				},
-				Right: &TplExp{
-					Type:     TplExpVar,
+				Right: &Exp{
+					Type:     ExpVar,
 					Variable: "e",
 				},
 			},
 		},
 		{
 			str: "{}",
-			exp: TplExp{
-				Type: TplExpMap,
-				Map:  map[string]*TplExp{},
+			exp: Exp{
+				Type: ExpMap,
+				Map:  map[string]*Exp{},
 			},
 		},
 		{
 			str: "{a:1}",
-			exp: TplExp{
-				Type: TplExpMap,
-				Map: map[string]*TplExp{
+			exp: Exp{
+				Type: ExpMap,
+				Map: map[string]*Exp{
 					"a": {
-						Type: TplExpInt,
+						Type: ExpInt,
 						Int:  1,
 					},
 				},
@@ -590,11 +590,11 @@ var (
 		},
 		{
 			str: "{a:1;}",
-			exp: TplExp{
-				Type: TplExpMap,
-				Map: map[string]*TplExp{
+			exp: Exp{
+				Type: ExpMap,
+				Map: map[string]*Exp{
 					"a": {
-						Type: TplExpInt,
+						Type: ExpInt,
 						Int:  1,
 					},
 				},
@@ -602,15 +602,15 @@ var (
 		},
 		{
 			str: "{a:1;\nb:2}",
-			exp: TplExp{
-				Type: TplExpMap,
-				Map: map[string]*TplExp{
+			exp: Exp{
+				Type: ExpMap,
+				Map: map[string]*Exp{
 					"a": {
-						Type: TplExpInt,
+						Type: ExpInt,
 						Int:  1,
 					},
 					"b": {
-						Type: TplExpInt,
+						Type: ExpInt,
 						Int:  2,
 					},
 				},
@@ -618,15 +618,15 @@ var (
 		},
 		{
 			str: "{a:1;\nb:2;}",
-			exp: TplExp{
-				Type: TplExpMap,
-				Map: map[string]*TplExp{
+			exp: Exp{
+				Type: ExpMap,
+				Map: map[string]*Exp{
 					"a": {
-						Type: TplExpInt,
+						Type: ExpInt,
 						Int:  1,
 					},
 					"b": {
-						Type: TplExpInt,
+						Type: ExpInt,
 						Int:  2,
 					},
 				},
@@ -634,15 +634,15 @@ var (
 		},
 		{
 			str: "{a:1;\n\rb:2;}",
-			exp: TplExp{
-				Type: TplExpMap,
-				Map: map[string]*TplExp{
+			exp: Exp{
+				Type: ExpMap,
+				Map: map[string]*Exp{
 					"a": {
-						Type: TplExpInt,
+						Type: ExpInt,
 						Int:  1,
 					},
 					"b": {
-						Type: TplExpInt,
+						Type: ExpInt,
 						Int:  2,
 					},
 				},
@@ -650,75 +650,75 @@ var (
 		},
 		{
 			str: "{a:1;   b:1.1 ;  c:\"str\";d:'str'; e: true;\n f: false;\n\r g:nil; h:var1; i:a+b+3;  j:  func1();  k:func2(a,b);}",
-			exp: TplExp{
-				Type: TplExpMap,
-				Map: map[string]*TplExp{
+			exp: Exp{
+				Type: ExpMap,
+				Map: map[string]*Exp{
 					"a": {
-						Type: TplExpInt,
+						Type: ExpInt,
 						Int:  1,
 					},
 					"b": {
-						Type:  TplExpFloat,
+						Type:  ExpFloat,
 						Float: 1.1,
 					},
 					"c": {
-						Type: TplExpStr,
+						Type: ExpStr,
 						Str:  "str",
 					},
 					"d": {
-						Type: TplExpStr,
+						Type: ExpStr,
 						Str:  "str",
 					},
 					"e": {
-						Type: TplExpBool,
+						Type: ExpBool,
 						Bool: true,
 					},
 					"f": {
-						Type: TplExpBool,
+						Type: ExpBool,
 						Bool: false,
 					},
 					"g": {
-						Type: TplExpNil,
+						Type: ExpNil,
 					},
 					"h": {
-						Type:     TplExpVar,
+						Type:     ExpVar,
 						Variable: "var1",
 					},
 					"i": {
-						Type:     TplExpCalc,
+						Type:     ExpCalc,
 						Operator: "+",
-						Left: &TplExp{
-							Type:     TplExpCalc,
+						Left: &Exp{
+							Type:     ExpCalc,
 							Operator: "+",
-							Left: &TplExp{
-								Type:     TplExpVar,
+							Left: &Exp{
+								Type:     ExpVar,
 								Variable: "a",
 							},
-							Right: &TplExp{
-								Type:     TplExpVar,
+							Right: &Exp{
+								Type:     ExpVar,
 								Variable: "b",
 							},
 						},
-						Right: &TplExp{
-							Type: TplExpInt,
+						Right: &Exp{
+							Type: ExpInt,
 							Int:  3,
 						},
 					},
 					"j": {
-						Type:       TplExpFunc,
+						Type:       ExpFunc,
 						FuncName:   "func1",
-						FuncParams: []*TplExp{},
+						FuncParams: []*Exp{},
 					},
 					"k": {
-						Type:     TplExpFunc,
+						Type:     ExpFunc,
 						FuncName: "func2",
-						FuncParams: []*TplExp{
+						FuncParams: []*Exp{
 							{
-								Type:     TplExpVar,
+								Type:     ExpVar,
 								Variable: "a",
 							},
 							{
-								Type:     TplExpVar,
+								Type:     ExpVar,
 								Variable: "b",
 							},
 						},
@@ -728,69 +728,69 @@ var (
 		},
 		{
 			str: "var1 ? a : b",
-			exp: TplExp{
-				Type:     TplExpCalc,
+			exp: Exp{
+				Type:     ExpCalc,
 				Operator: "?",
-				TenaryCondition: &TplExp{
-					Type:     TplExpVar,
+				TenaryCondition: &Exp{
+					Type:     ExpVar,
 					Variable: "var1",
 				},
-				Left: &TplExp{
-					Type:     TplExpVar,
+				Left: &Exp{
+					Type:     ExpVar,
 					Variable: "a",
 				},
-				Right: &TplExp{
-					Type:     TplExpVar,
+				Right: &Exp{
+					Type:     ExpVar,
 					Variable: "b",
 				},
 			},
 		},
 		{
 			str: "a + b > 3 ? c + d : e * f",
-			exp: TplExp{
-				Type:     TplExpCalc,
+			exp: Exp{
+				Type:     ExpCalc,
 				Operator: "?",
-				TenaryCondition: &TplExp{
-					Type:     TplExpCalc,
+				TenaryCondition: &Exp{
+					Type:     ExpCalc,
 					Operator: ">",
-					Left: &TplExp{
-						Type:     TplExpCalc,
+					Left: &Exp{
+						Type:     ExpCalc,
 						Operator: "+",
-						Left: &TplExp{
-							Type:     TplExpVar,
+						Left: &Exp{
+							Type:     ExpVar,
 							Variable: "a",
 						},
-						Right: &TplExp{
-							Type:     TplExpVar,
+						Right: &Exp{
+							Type:     ExpVar,
 							Variable: "b",
 						},
 					},
-					Right: &TplExp{
-						Type: TplExpInt,
+					Right: &Exp{
+						Type: ExpInt,
 						Int:  3,
 					},
 				},
-				Left: &TplExp{
-					Type:     TplExpCalc,
+				Left: &Exp{
+					Type:     ExpCalc,
 					Operator: "+",
-					Left: &TplExp{
-						Type:     TplExpVar,
+					Left: &Exp{
+						Type:     ExpVar,
 						Variable: "c",
 					},
-					Right: &TplExp{
-						Type:     TplExpVar,
+					Right: &Exp{
+						Type:     ExpVar,
 						Variable: "d",
 					},
 				},
-				Right: &TplExp{
-					Type:     TplExpCalc,
+				Right: &Exp{
+					Type:     ExpCalc,
 					Operator: "*",
-					Left: &TplExp{
-						Type:     TplExpVar,
+					Left: &Exp{
+						Type:     ExpVar,
 						Variable: "e",
 					},
-					Right: &TplExp{
-						Type:     TplExpVar,
+					Right: &Exp{
+						Type:     ExpVar,
 						Variable: "f",
 					},
 				},
@@ -798,109 +798,109 @@ var (
 		},
 		{
 			str: "a + b > 3 ? (c + d < 5 ? -1 : -2) : (e * f < 10 ? -3 : -4)",
-			exp: TplExp{
-				Type:     TplExpCalc,
+			exp: Exp{
+				Type:     ExpCalc,
 				Operator: "?",
-				TenaryCondition: &TplExp{
-					Type:     TplExpCalc,
+				TenaryCondition: &Exp{
+					Type:     ExpCalc,
 					Operator: ">",
-					Left: &TplExp{
-						Type:     TplExpCalc,
+					Left: &Exp{
+						Type:     ExpCalc,
 						Operator: "+",
-						Left: &TplExp{
-							Type:     TplExpVar,
+						Left: &Exp{
+							Type:     ExpVar,
 							Variable: "a",
 						},
-						Right: &TplExp{
-							Type:     TplExpVar,
+						Right: &Exp{
+							Type:     ExpVar,
 							Variable: "b",
 						},
 					},
-					Right: &TplExp{
-						Type: TplExpInt,
+					Right: &Exp{
+						Type: ExpInt,
 						Int:  3,
 					},
 				},
-				Left: &TplExp{
-					Type:     TplExpCalc,
+				Left: &Exp{
+					Type:     ExpCalc,
 					Operator: "?",
-					TenaryCondition: &TplExp{
-						Type:     TplExpCalc,
+					TenaryCondition: &Exp{
+						Type:     ExpCalc,
 						Operator: "<",
-						Left: &TplExp{
-							Type:     TplExpCalc,
+						Left: &Exp{
+							Type:     ExpCalc,
 							Operator: "+",
-							Left: &TplExp{
-								Type:     TplExpVar,
+							Left: &Exp{
+								Type:     ExpVar,
 								Variable: "c",
 							},
-							Right: &TplExp{
-								Type:     TplExpVar,
+							Right: &Exp{
+								Type:     ExpVar,
 								Variable: "d",
 							},
 						},
-						Right: &TplExp{
-							Type: TplExpInt,
+						Right: &Exp{
+							Type: ExpInt,
 							Int:  5,
 						},
 					},
-					Left: &TplExp{
-						Type:     TplExpCalc,
+					Left: &Exp{
+						Type:     ExpCalc,
 						Operator: "-",
 						Left:     nil,
-						Right: &TplExp{
-							Type: TplExpInt,
+						Right: &Exp{
+							Type: ExpInt,
 							Int:  1,
 						},
 					},
-					Right: &TplExp{
-						Type:     TplExpCalc,
+					Right: &Exp{
+						Type:     ExpCalc,
 						Operator: "-",
 						Left:     nil,
-						Right: &TplExp{
-							Type: TplExpInt,
+						Right: &Exp{
+							Type: ExpInt,
 							Int:  2,
 						},
 					},
 				},
-				Right: &TplExp{
-					Type:     TplExpCalc,
+				Right: &Exp{
+					Type:     ExpCalc,
 					Operator: "?",
-					TenaryCondition: &TplExp{
-						Type:     TplExpCalc,
+					TenaryCondition: &Exp{
+						Type:     ExpCalc,
 						Operator: "<",
-						Left: &TplExp{
-							Type:     TplExpCalc,
+						Left: &Exp{
+							Type:     ExpCalc,
 							Operator: "*",
-							Left: &TplExp{
-								Type:     TplExpVar,
+							Left: &Exp{
+								Type:     ExpVar,
 								Variable: "e",
 							},
-							Right: &TplExp{
-								Type:     TplExpVar,
+							Right: &Exp{
+								Type:     ExpVar,
 								Variable: "f",
 							},
 						},
-						Right: &TplExp{
-							Type: TplExpInt,
+						Right: &Exp{
+							Type: ExpInt,
 							Int:  10,
 						},
 					},
-					Left: &TplExp{
-						Type:     TplExpCalc,
+					Left: &Exp{
+						Type:     ExpCalc,
 						Operator: "-",
 						Left:     nil,
-						Right: &TplExp{
-							Type: TplExpInt,
+						Right: &Exp{
+							Type: ExpInt,
 							Int:  3,
 						},
 					},
-					Right: &TplExp{
-						Type:     TplExpCalc,
+					Right: &Exp{
+						Type:     ExpCalc,
 						Operator: "-",
 						Left:     nil,
-						Right: &TplExp{
-							Type: TplExpInt,
+						Right: &Exp{
+							Type: ExpInt,
 							Int:  4,
 						},
 					},
@@ -958,53 +958,53 @@ var (
 	}
 )
 
-func isTplExpEqual(a TplExp, b TplExp) bool {
+func isExpEqual(a Exp, b Exp) bool {
 	if a.Type != b.Type {
 		return false
 	}
 
 	switch a.Type {
-	case TplExpInt:
+	case ExpInt:
 		if a.Int != b.Int {
 			return false
 		}
 
-	case TplExpFloat:
+	case ExpFloat:
 		if math.Abs(a.Float-b.Float) > 1e-9 {
 			return false
 		}
 
-	case TplExpBool:
+	case ExpBool:
 		if a.Bool != b.Bool {
 			return false
 		}
 
-	case TplExpStr:
+	case ExpStr:
 		if a.Str != b.Str {
 			return false
 		}
 
-	case TplExpVar:
+	case ExpVar:
 		if a.Variable != b.Variable {
 			return false
 		}
 
-	case TplExpOperator:
+	case ExpOperator:
 		if a.Operator != b.Operator {
 			return false
 		}
 
-	case TplExpFunc:
+	case ExpFunc:
 		if a.FuncName != b.FuncName || len(a.FuncParams) != len(b.FuncParams) {
 			return false
 		}
 		for i := 0; i < len(a.FuncParams); i++ {
-			if !isTplExpEqual(*a.FuncParams[i], *b.FuncParams[i]) {
+			if !isExpEqual(*a.FuncParams[i], *b.FuncParams[i]) {
 				return false
 			}
 		}
 
-	case TplExpMap:
+	case ExpMap:
 		if len(a.Map) != len(b.Map) {
 			return false
 		}
@@ -1012,22 +1012,22 @@ func isTplExpEqual(a TplExp, b TplExp) bool {
 			if b.Map[k] == nil {
 				return false
 			}
-			if !isTplExpEqual(*v, *b.Map[k]) {
+			if !isExpEqual(*v, *b.Map[k]) {
 				return false
 			}
 		}
 
-	case TplExpCalc:
+	case ExpCalc:
 		if a.Operator != b.Operator ||
 			(a.Left == nil && b.Left != nil) ||
 			(a.Left != nil && b.Left == nil) ||
 			(a.Right == nil && b.Right != nil) ||
 			(a.Right != nil && b.Right == nil) ||
-			(a.Left != nil && b.Left != nil && !isTplExpEqual(*a.Left, *b.Left)) ||
-			(a.Right != nil && b.Right != nil && !isTplExpEqual(*a.Right, *b.Right)) {
+			(a.Left != nil && b.Left != nil && !isExpEqual(*a.Left, *b.Left)) ||
+			(a.Right != nil && b.Right != nil && !isExpEqual(*a.Right, *b.Right)) {
 			return false
 		}
-		if a.Operator == "?" && !isTplExpEqual(*a.TenaryCondition, *b.TenaryCondition) {
+		if a.Operator == "?" && !isExpEqual(*a.TenaryCondition, *b.TenaryCondition) {
 			return false
 		}
 	}
@@ -1035,14 +1035,14 @@ func isTplExpEqual(a TplExp, b TplExp) bool {
 	return true
 }
 
-func TestParseTplExp(t *testing.T) {
-	var realExp *TplExp
+func TestParseExp(t *testing.T) {
+	var realExp *Exp
 	var err error
 	var str string
-	for _, testCase := range parseTplExpTestCases {
+	for _, testCase := range parseExpTestCases {
 		str = testCase.str
 		fmt.Printf("expression: %s\n", str)
-		realExp, err = ParseTplExp(str)
+		realExp, err = ParseExp(str)
 		if err != nil {
 			if tpe, ok := err.(*TplParseError); ok {
 				if testCase.err != "" && tpe.err == testCase.err {
@@ -1050,7 +1050,7 @@ func TestParseTplExp(t *testing.T) {
 				}
 			}
 			t.Fatalf("error: %s", err)
-		} else if !isTplExpEqual(*realExp, testCase.exp) {
+		} else if !isExpEqual(*realExp, testCase.exp) {
 			spew.Dump(*realExp)
 			spew.Dump(testCase.exp)
 			t.Fatalf("the expression is not parsed as expected\n")

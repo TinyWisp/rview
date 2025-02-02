@@ -54,47 +54,47 @@ var (
 	}
 )
 
-type TplExp struct {
-	Type            TplExpType
+type Exp struct {
+	Type            ExpType
 	Int             int64
 	Float           float64
 	Str             string
 	Bool            bool
 	FuncName        string
-	FuncParams      []*TplExp
+	FuncParams      []*Exp
 	Variable        string
 	Operator        string
-	Map             map[string]*TplExp
-	Left            *TplExp
-	Right           *TplExp
-	TenaryCondition *TplExp
+	Map             map[string]*Exp
+	Left            *Exp
+	Right           *Exp
+	TenaryCondition *Exp
 	Pos             int
 }
 
-type TplExpType int
+type ExpType int
 
 const (
-	TplExpStr TplExpType = iota
-	TplExpInt
-	TplExpFloat
-	TplExpBool
-	TplExpNil
-	TplExpVar
-	TplExpOperator
-	TplExpFunc
-	TplExpCalc
-	TplExpMap
+	ExpStr ExpType = iota
+	ExpInt
+	ExpFloat
+	ExpBool
+	ExpNil
+	ExpVar
+	ExpOperator
+	ExpFunc
+	ExpCalc
+	ExpMap
 )
 
-type TplExpOperatorDirection int
+type ExpOperatorDirection int
 
 const (
-	LTR TplExpOperatorDirection = iota
+	LTR ExpOperatorDirection = iota
 	RTL
 )
 
-func readTplExp(str string) ([]TplExp, error) {
-	exps := make([]TplExp, 0)
+func readExp(str string) ([]Exp, error) {
+	exps := make([]Exp, 0)
 
 	byteArr := []byte(str)
 	blen := len(byteArr)
@@ -109,8 +109,8 @@ func readTplExp(str string) ([]TplExp, error) {
 			match := false
 			for end := pos + 1; end < blen; end++ {
 				if str[end] == '\'' && str[end-1] != '\\' {
-					exps = append(exps, TplExp{
-						Type: TplExpStr,
+					exps = append(exps, Exp{
+						Type: ExpStr,
 						Str:  strings.ReplaceAll(str[pos+1:end], "\\'", "'"),
 						Pos:  pos,
 					})
@@ -128,8 +128,8 @@ func readTplExp(str string) ([]TplExp, error) {
 			match := false
 			for end := pos + 1; end < blen; end++ {
 				if str[end] == '"' && str[end-1] != '\\' {
-					exps = append(exps, TplExp{
-						Type: TplExpStr,
+					exps = append(exps, Exp{
+						Type: ExpStr,
 						Str:  strings.ReplaceAll(str[pos+1:end], "\\\"", "\""),
 						Pos:  pos,
 					})
@@ -147,20 +147,20 @@ func readTplExp(str string) ([]TplExp, error) {
 			word := matches[1]
 			switch word {
 			case "true":
-				exps = append(exps, TplExp{
-					Type: TplExpBool,
+				exps = append(exps, Exp{
+					Type: ExpBool,
 					Bool: true,
 					Pos:  pos,
 				})
 			case "false":
-				exps = append(exps, TplExp{
-					Type: TplExpBool,
+				exps = append(exps, Exp{
+					Type: ExpBool,
 					Bool: false,
 					Pos:  pos,
 				})
 			case "nil":
-				exps = append(exps, TplExp{
-					Type: TplExpNil,
+				exps = append(exps, Exp{
+					Type: ExpNil,
 					Pos:  pos,
 				})
 			}
@@ -168,8 +168,8 @@ func readTplExp(str string) ([]TplExp, error) {
 
 			// func
 		} else if matches := expPattern.function.FindStringSubmatch(left); len(matches) > 0 {
-			exps = append(exps, TplExp{
-				Type:     TplExpFunc,
+			exps = append(exps, Exp{
+				Type:     ExpFunc,
 				FuncName: matches[1],
 				Pos:      pos,
 			})
@@ -179,15 +179,15 @@ func readTplExp(str string) ([]TplExp, error) {
 		} else if matches := expPattern.variable.FindStringSubmatch(left); len(matches) > 0 {
 			variable := matches[0]
 			count := len(exps)
-			if count > 0 && exps[count-1].Type == TplExpOperator && exps[count-1].Operator == "." {
-				exps = append(exps, TplExp{
-					Type: TplExpStr,
+			if count > 0 && exps[count-1].Type == ExpOperator && exps[count-1].Operator == "." {
+				exps = append(exps, Exp{
+					Type: ExpStr,
 					Str:  variable,
 					Pos:  pos,
 				})
 			} else {
-				exps = append(exps, TplExp{
-					Type:     TplExpVar,
+				exps = append(exps, Exp{
+					Type:     ExpVar,
 					Variable: variable,
 					Pos:      pos,
 				})
@@ -197,8 +197,8 @@ func readTplExp(str string) ([]TplExp, error) {
 			// float
 		} else if matches := expPattern.floatNum.FindStringSubmatch(left); len(matches) > 0 {
 			num, _ := strconv.ParseFloat(matches[0], 64)
-			exps = append(exps, TplExp{
-				Type:  TplExpFloat,
+			exps = append(exps, Exp{
+				Type:  ExpFloat,
 				Float: num,
 				Pos:   pos,
 			})
@@ -207,8 +207,8 @@ func readTplExp(str string) ([]TplExp, error) {
 			// int
 		} else if matches := expPattern.intNum.FindStringSubmatch(left); len(matches) > 0 {
 			num, _ := strconv.ParseInt(matches[0], 10, 64)
-			exps = append(exps, TplExp{
-				Type: TplExpInt,
+			exps = append(exps, Exp{
+				Type: ExpInt,
 				Int:  num,
 				Pos:  pos,
 			})
@@ -220,15 +220,15 @@ func readTplExp(str string) ([]TplExp, error) {
 			if optr == "-" {
 				if len(exps) == 0 {
 					optr = "negative"
-				} else if exps[len(exps)-1].Type == TplExpOperator {
+				} else if exps[len(exps)-1].Type == ExpOperator {
 					lastOptr := exps[len(exps)-1].Operator
 					if lastOptr != ")" && lastOptr != "]" {
 						optr = "negative"
 					}
 				}
 			}
-			exps = append(exps, TplExp{
-				Type:     TplExpOperator,
+			exps = append(exps, Exp{
+				Type:     ExpOperator,
 				Operator: optr,
 				Pos:      pos,
 			})
@@ -251,9 +251,9 @@ func readTplExp(str string) ([]TplExp, error) {
 	return exps, nil
 }
 
-func generateTplExpTree(exps []TplExp) (*TplExp, error) {
-	optrStack := make([]*TplExp, 0)
-	opndStack := make([]*TplExp, 0)
+func generateExpTree(exps []Exp) (*Exp, error) {
+	optrStack := make([]*Exp, 0)
+	opndStack := make([]*Exp, 0)
 
 	pos := 0
 	for {
@@ -264,34 +264,34 @@ func generateTplExpTree(exps []TplExp) (*TplExp, error) {
 		exp := exps[pos]
 
 		// {...}
-		if exp.Type == TplExpOperator && exp.Operator == "{" {
+		if exp.Type == ExpOperator && exp.Operator == "{" {
 			bracketEnd := pos
 			bracketNum := 1
 			key := ""
 			valBegin := 0
 			valEnd := 0
-			expMap := make(map[string]*TplExp)
+			expMap := make(map[string]*Exp)
 			for idx := pos + 1; idx < len(exps); idx++ {
-				if exps[idx].Type == TplExpOperator && exps[idx].Operator == "{" {
+				if exps[idx].Type == ExpOperator && exps[idx].Operator == "{" {
 					bracketNum += 1
-				} else if exps[idx].Type == TplExpOperator && exps[idx].Operator == "}" {
+				} else if exps[idx].Type == ExpOperator && exps[idx].Operator == "}" {
 					bracketNum -= 1
 					valEnd = idx - 1
-				} else if exps[idx].Type == TplExpOperator && exps[idx].Operator == ":" {
-					if exps[idx-1].Type != TplExpVar {
+				} else if exps[idx].Type == ExpOperator && exps[idx].Operator == ":" {
+					if exps[idx-1].Type != ExpVar {
 						return nil, errors.New("there must be a key before ':'")
 					}
-					if exps[idx-2].Type != TplExpOperator || (exps[idx-2].Operator != "{" && exps[idx-2].Operator != ";") {
+					if exps[idx-2].Type != ExpOperator || (exps[idx-2].Operator != "{" && exps[idx-2].Operator != ";") {
 						return nil, errors.New("invalid key before ':'")
 					}
 					key = exps[idx-1].Variable
 					valBegin = idx + 1
-				} else if exps[idx].Type == TplExpOperator && exps[idx].Operator == ";" {
+				} else if exps[idx].Type == ExpOperator && exps[idx].Operator == ";" {
 					valEnd = idx - 1
 				}
 
 				if bracketNum <= 1 && valEnd-valBegin >= 0 && key != "" {
-					val, err := generateTplExpTree(exps[valBegin : valEnd+1])
+					val, err := generateExpTree(exps[valBegin : valEnd+1])
 					if err != nil {
 						return nil, err
 					}
@@ -307,21 +307,21 @@ func generateTplExpTree(exps []TplExp) (*TplExp, error) {
 				return nil, NewTplParseError("", "exp.mismatchedCurlyBrace", exp.Pos)
 			}
 
-			opndStack = append(opndStack, &TplExp{
-				Type: TplExpMap,
+			opndStack = append(opndStack, &Exp{
+				Type: ExpMap,
 				Map:  expMap,
 			})
 			pos = bracketEnd + 1
 
 			// (...)
-		} else if exp.Type == TplExpOperator && exp.Operator == "(" {
+		} else if exp.Type == ExpOperator && exp.Operator == "(" {
 			bracketBegin := pos
 			bracketEnd := pos
 			bracketNum := 1
 			for idx := pos + 1; idx < len(exps); idx++ {
-				if (exps[idx].Type == TplExpOperator && exps[idx].Operator == "(") || exps[idx].Type == TplExpFunc {
+				if (exps[idx].Type == ExpOperator && exps[idx].Operator == "(") || exps[idx].Type == ExpFunc {
 					bracketNum += 1
-				} else if exps[idx].Type == TplExpOperator && exps[idx].Operator == ")" {
+				} else if exps[idx].Type == ExpOperator && exps[idx].Operator == ")" {
 					bracketNum -= 1
 				}
 				if bracketNum == 0 {
@@ -332,7 +332,7 @@ func generateTplExpTree(exps []TplExp) (*TplExp, error) {
 			if bracketNum > 0 {
 				return nil, NewTplParseError("", "exp.mismatchedParenthesis", exp.Pos)
 			}
-			parsedExp, err := generateTplExpTree(exps[bracketBegin+1 : bracketEnd])
+			parsedExp, err := generateExpTree(exps[bracketBegin+1 : bracketEnd])
 			if err != nil {
 				return nil, err
 			}
@@ -340,14 +340,14 @@ func generateTplExpTree(exps []TplExp) (*TplExp, error) {
 			pos = bracketEnd + 1
 
 			// [...]
-		} else if exp.Type == TplExpOperator && exp.Operator == "[" {
+		} else if exp.Type == ExpOperator && exp.Operator == "[" {
 			bracketBegin := pos
 			bracketEnd := pos
 			bracketNum := 1
 			for idx := pos + 1; idx < len(exps); idx++ {
-				if exps[idx].Type == TplExpOperator && exps[idx].Operator == "[" {
+				if exps[idx].Type == ExpOperator && exps[idx].Operator == "[" {
 					bracketNum += 1
-				} else if exps[idx].Type == TplExpOperator && exps[idx].Operator == "]" {
+				} else if exps[idx].Type == ExpOperator && exps[idx].Operator == "]" {
 					bracketNum -= 1
 				}
 				if bracketNum == 0 {
@@ -358,13 +358,13 @@ func generateTplExpTree(exps []TplExp) (*TplExp, error) {
 			if bracketNum > 0 {
 				return nil, NewTplParseError("", "exp.mismatchedSquareBracket", exp.Pos)
 			}
-			parsedExp, err := generateTplExpTree(exps[bracketBegin+1 : bracketEnd])
+			parsedExp, err := generateExpTree(exps[bracketBegin+1 : bracketEnd])
 			if err != nil {
 				return nil, err
 			}
 			lastOpnd := opndStack[len(opndStack)-1]
-			opndStack[len(opndStack)-1] = &TplExp{
-				Type:     TplExpCalc,
+			opndStack[len(opndStack)-1] = &Exp{
+				Type:     ExpCalc,
 				Operator: "[",
 				Left:     lastOpnd,
 				Right:    parsedExp,
@@ -376,30 +376,30 @@ func generateTplExpTree(exps []TplExp) (*TplExp, error) {
 			pos = bracketEnd + 1
 
 			// func
-		} else if exp.Type == TplExpFunc {
+		} else if exp.Type == ExpFunc {
 			argBegin := pos + 1
 			bracketNum := 1
-			args := make([]*TplExp, 0)
+			args := make([]*Exp, 0)
 			for idx := pos + 1; idx < len(exps); idx++ {
-				if exps[idx].Type == TplExpOperator && exps[idx].Operator == "(" {
+				if exps[idx].Type == ExpOperator && exps[idx].Operator == "(" {
 					bracketNum += 1
-				} else if exps[idx].Type == TplExpOperator && exps[idx].Operator == ")" {
+				} else if exps[idx].Type == ExpOperator && exps[idx].Operator == ")" {
 					bracketNum -= 1
 					if idx > argBegin {
-						arg, err := generateTplExpTree(exps[argBegin:idx])
+						arg, err := generateExpTree(exps[argBegin:idx])
 						if err != nil {
 							return nil, err
 						}
 						args = append(args, arg)
 					}
-				} else if exps[idx].Type == TplExpOperator && exps[idx].Operator == "," && bracketNum == 1 {
+				} else if exps[idx].Type == ExpOperator && exps[idx].Operator == "," && bracketNum == 1 {
 					if idx == argBegin {
 						return nil, NewTplParseError("", "exp.expectingParameter", exps[idx].Pos)
 					}
 					if len(exps) > idx+1 && exps[idx+1].Operator == ")" {
 						return nil, NewTplParseError("", "exp.expectingParameter", exps[idx+1].Pos)
 					}
-					arg, err := generateTplExpTree(exps[argBegin:idx])
+					arg, err := generateExpTree(exps[argBegin:idx])
 					if err != nil {
 						return nil, err
 					}
@@ -418,7 +418,7 @@ func generateTplExpTree(exps []TplExp) (*TplExp, error) {
 			}
 
 			// operator
-		} else if exp.Type == TplExpOperator {
+		} else if exp.Type == ExpOperator {
 			if len(optrStack) == 0 {
 				optrStack = append(optrStack, &exp)
 				pos += 1
@@ -459,7 +459,7 @@ func generateTplExpTree(exps []TplExp) (*TplExp, error) {
 	return opndStack[0], nil
 }
 
-func calculate(opndStack []*TplExp, optrStack []*TplExp) ([]*TplExp, []*TplExp, error) {
+func calculate(opndStack []*Exp, optrStack []*Exp) ([]*Exp, []*Exp, error) {
 	if len(optrStack) == 0 {
 		return opndStack, optrStack, nil
 	}
@@ -480,8 +480,8 @@ func calculate(opndStack []*TplExp, optrStack []*TplExp) ([]*TplExp, []*TplExp, 
 			return opndStack, optrStack, NewTplParseError("", "exp.incompleteExpression", optr.Pos)
 		}
 		oexp := opndStack[len(opndStack)-1]
-		nexp := &TplExp{
-			Type:     TplExpCalc,
+		nexp := &Exp{
+			Type:     ExpCalc,
 			Operator: "-",
 			Left:     nil,
 			Right:    oexp,
@@ -494,8 +494,8 @@ func calculate(opndStack []*TplExp, optrStack []*TplExp) ([]*TplExp, []*TplExp, 
 			return opndStack, optrStack, NewTplParseError("", "exp.incompleteExpression", optr.Pos)
 		}
 		oexp := opndStack[len(opndStack)-1]
-		nexp := &TplExp{
-			Type:     TplExpCalc,
+		nexp := &Exp{
+			Type:     ExpCalc,
 			Operator: "!",
 			Left:     nil,
 			Right:    oexp,
@@ -509,11 +509,11 @@ func calculate(opndStack []*TplExp, optrStack []*TplExp) ([]*TplExp, []*TplExp, 
 		}
 		exp1 := opndStack[len(opndStack)-1]
 		exp2 := opndStack[len(opndStack)-2]
-		if exp1.Type != TplExpCalc || exp1.Operator != ":" {
+		if exp1.Type != ExpCalc || exp1.Operator != ":" {
 			return opndStack, optrStack, NewTplParseError("", "exp.invalidTenaryExpression", optr.Pos)
 		}
-		nexp := &TplExp{
-			Type:            TplExpCalc,
+		nexp := &Exp{
+			Type:            ExpCalc,
 			Operator:        "?",
 			TenaryCondition: exp2,
 			Left:            exp1.Left,
@@ -529,8 +529,8 @@ func calculate(opndStack []*TplExp, optrStack []*TplExp) ([]*TplExp, []*TplExp, 
 		}
 		exp1 := opndStack[len(opndStack)-1]
 		exp2 := opndStack[len(opndStack)-2]
-		nexp := &TplExp{
-			Type:     TplExpCalc,
+		nexp := &Exp{
+			Type:     ExpCalc,
 			Operator: optr.Operator,
 			Left:     exp2,
 			Right:    exp1,
@@ -543,12 +543,12 @@ func calculate(opndStack []*TplExp, optrStack []*TplExp) ([]*TplExp, []*TplExp, 
 	return opndStack, optrStack, nil
 }
 
-func ParseTplExp(str string) (*TplExp, error) {
-	exps, err := readTplExp(str)
+func ParseExp(str string) (*Exp, error) {
+	exps, err := readExp(str)
 	if err != nil {
 		return nil, err
 	}
-	tree, err2 := generateTplExpTree(exps)
+	tree, err2 := generateExpTree(exps)
 	if err2 != nil {
 		if tpe, ok := err2.(*TplParseError); ok {
 			tpe.SetTpl(str)
