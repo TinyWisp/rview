@@ -120,7 +120,7 @@ func readExp(str string) ([]Exp, error) {
 				}
 			}
 			if !match {
-				return exps, NewTplParseError(str, "exp.mismatchedSingleQuotationMark", pos)
+				return exps, NewDdlParseError(str, "exp.mismatchedSingleQuotationMark", pos)
 			}
 
 			// string literal
@@ -139,7 +139,7 @@ func readExp(str string) ([]Exp, error) {
 				}
 			}
 			if !match {
-				return exps, NewTplParseError(str, "exp.mismatchedDoubleQuotationMark", pos)
+				return exps, NewDdlParseError(str, "exp.mismatchedDoubleQuotationMark", pos)
 			}
 
 			// true, false, nil
@@ -240,7 +240,7 @@ func readExp(str string) ([]Exp, error) {
 
 			// others
 		} else {
-			return exps, NewTplParseError(str, "exp.unexpectedToken", pos)
+			return exps, NewDdlParseError(str, "exp.unexpectedToken", pos)
 		}
 
 		if pos > blen-1 {
@@ -304,7 +304,7 @@ func generateExpTree(exps []Exp) (*Exp, error) {
 				}
 			}
 			if bracketNum > 0 {
-				return nil, NewTplParseError("", "exp.mismatchedCurlyBrace", exp.Pos)
+				return nil, NewDdlParseError("", "exp.mismatchedCurlyBrace", exp.Pos)
 			}
 
 			opndStack = append(opndStack, &Exp{
@@ -330,7 +330,7 @@ func generateExpTree(exps []Exp) (*Exp, error) {
 				}
 			}
 			if bracketNum > 0 {
-				return nil, NewTplParseError("", "exp.mismatchedParenthesis", exp.Pos)
+				return nil, NewDdlParseError("", "exp.mismatchedParenthesis", exp.Pos)
 			}
 			parsedExp, err := generateExpTree(exps[bracketBegin+1 : bracketEnd])
 			if err != nil {
@@ -356,7 +356,7 @@ func generateExpTree(exps []Exp) (*Exp, error) {
 				}
 			}
 			if bracketNum > 0 {
-				return nil, NewTplParseError("", "exp.mismatchedSquareBracket", exp.Pos)
+				return nil, NewDdlParseError("", "exp.mismatchedSquareBracket", exp.Pos)
 			}
 			parsedExp, err := generateExpTree(exps[bracketBegin+1 : bracketEnd])
 			if err != nil {
@@ -394,10 +394,10 @@ func generateExpTree(exps []Exp) (*Exp, error) {
 					}
 				} else if exps[idx].Type == ExpOperator && exps[idx].Operator == "," && bracketNum == 1 {
 					if idx == argBegin {
-						return nil, NewTplParseError("", "exp.expectingParameter", exps[idx].Pos)
+						return nil, NewDdlParseError("", "exp.expectingParameter", exps[idx].Pos)
 					}
 					if len(exps) > idx+1 && exps[idx+1].Operator == ")" {
-						return nil, NewTplParseError("", "exp.expectingParameter", exps[idx+1].Pos)
+						return nil, NewDdlParseError("", "exp.expectingParameter", exps[idx+1].Pos)
 					}
 					arg, err := generateExpTree(exps[argBegin:idx])
 					if err != nil {
@@ -414,7 +414,7 @@ func generateExpTree(exps []Exp) (*Exp, error) {
 				}
 			}
 			if bracketNum > 0 {
-				return nil, NewTplParseError("", "exp.mismatchedParentheses", exp.Pos+len(exp.FuncName))
+				return nil, NewDdlParseError("", "exp.mismatchedParentheses", exp.Pos+len(exp.FuncName))
 			}
 
 			// operator
@@ -467,17 +467,17 @@ func calculate(opndStack []*Exp, optrStack []*Exp) ([]*Exp, []*Exp, error) {
 	optr := optrStack[len(optrStack)-1]
 	switch optr.Operator {
 	case ")":
-		return opndStack, optrStack, NewTplParseError("", "exp.mismatchedParenthesis", optr.Pos)
+		return opndStack, optrStack, NewDdlParseError("", "exp.mismatchedParenthesis", optr.Pos)
 
 	case "]":
-		return opndStack, optrStack, NewTplParseError("", "exp.mismatchedSquareBracket", optr.Pos)
+		return opndStack, optrStack, NewDdlParseError("", "exp.mismatchedSquareBracket", optr.Pos)
 
 	case "}":
-		return opndStack, optrStack, NewTplParseError("", "exp.mismatchedCurlyBracket", optr.Pos)
+		return opndStack, optrStack, NewDdlParseError("", "exp.mismatchedCurlyBracket", optr.Pos)
 
 	case "negative":
 		if len(opndStack) == 0 {
-			return opndStack, optrStack, NewTplParseError("", "exp.incompleteExpression", optr.Pos)
+			return opndStack, optrStack, NewDdlParseError("", "exp.incompleteExpression", optr.Pos)
 		}
 		oexp := opndStack[len(opndStack)-1]
 		nexp := &Exp{
@@ -491,7 +491,7 @@ func calculate(opndStack []*Exp, optrStack []*Exp) ([]*Exp, []*Exp, error) {
 
 	case "!":
 		if len(opndStack) == 0 {
-			return opndStack, optrStack, NewTplParseError("", "exp.incompleteExpression", optr.Pos)
+			return opndStack, optrStack, NewDdlParseError("", "exp.incompleteExpression", optr.Pos)
 		}
 		oexp := opndStack[len(opndStack)-1]
 		nexp := &Exp{
@@ -505,12 +505,12 @@ func calculate(opndStack []*Exp, optrStack []*Exp) ([]*Exp, []*Exp, error) {
 
 	case "?":
 		if len(opndStack) < 2 {
-			return opndStack, optrStack, NewTplParseError("", "exp.incompleteExpression", optr.Pos)
+			return opndStack, optrStack, NewDdlParseError("", "exp.incompleteExpression", optr.Pos)
 		}
 		exp1 := opndStack[len(opndStack)-1]
 		exp2 := opndStack[len(opndStack)-2]
 		if exp1.Type != ExpCalc || exp1.Operator != ":" {
-			return opndStack, optrStack, NewTplParseError("", "exp.invalidTenaryExpression", optr.Pos)
+			return opndStack, optrStack, NewDdlParseError("", "exp.invalidTenaryExpression", optr.Pos)
 		}
 		nexp := &Exp{
 			Type:            ExpCalc,
@@ -525,7 +525,7 @@ func calculate(opndStack []*Exp, optrStack []*Exp) ([]*Exp, []*Exp, error) {
 
 	default:
 		if len(opndStack) < 2 {
-			return opndStack, optrStack, NewTplParseError("", "exp.incompleteExpression", optr.Pos)
+			return opndStack, optrStack, NewDdlParseError("", "exp.incompleteExpression", optr.Pos)
 		}
 		exp1 := opndStack[len(opndStack)-1]
 		exp2 := opndStack[len(opndStack)-2]
@@ -550,8 +550,8 @@ func ParseExp(str string) (*Exp, error) {
 	}
 	tree, err2 := generateExpTree(exps)
 	if err2 != nil {
-		if tpe, ok := err2.(*TplParseError); ok {
-			tpe.SetTpl(str)
+		if tpe, ok := err2.(*DdlParseError); ok {
+			tpe.SetDdl(str)
 		}
 		return nil, err2
 	}

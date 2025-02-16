@@ -1044,7 +1044,7 @@ func TestParseExp(t *testing.T) {
 		fmt.Printf("expression: %s\n", str)
 		realExp, err = ParseExp(str)
 		if err != nil {
-			if tpe, ok := err.(*TplParseError); ok {
+			if tpe, ok := err.(*DdlParseError); ok {
 				if testCase.err != "" && tpe.err == testCase.err {
 					continue
 				}

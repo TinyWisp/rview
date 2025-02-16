@@ -121,16 +121,16 @@ func parseCss(css string) (CSSClassMap, error) {
 
 	classMap, err2 := genCssClassMap(tokens)
 	if err2 != nil {
-		if tpe, ok := err2.(*TplParseError); ok {
-			tpe.SetTpl(css)
+		if tpe, ok := err2.(*DdlParseError); ok {
+			tpe.SetDdl(css)
 		}
 		return nil, err2
 	}
 
 	err3 := checkCssPropRule(classMap)
 	if err3 != nil {
-		if tpe, ok := err3.(*TplParseError); ok {
-			tpe.SetTpl(css)
+		if tpe, ok := err3.(*DdlParseError); ok {
+			tpe.SetDdl(css)
 		}
 		return nil, err3
 	}
@@ -159,7 +159,7 @@ func genCssClassMap(tokens []CSSToken) (CSSClassMap, error) {
 		} else if expect == "key" && token.Type == CSSTokenProp {
 			key = token.Prop
 			if _, ok := propRuleMap[key]; !ok && !strings.HasPrefix(key, "--") {
-				return classMap, NewTplParseError("", "css.unsupportedProp", token.Pos)
+				return classMap, NewDdlParseError("", "css.unsupportedProp", token.Pos)
 			}
 			expect = ":"
 
@@ -182,7 +182,7 @@ func genCssClassMap(tokens []CSSToken) (CSSClassMap, error) {
 		} else if expect == "key|}" && token.Type == CSSTokenProp {
 			key = token.Prop
 			if _, ok := propRuleMap[key]; !ok && !strings.HasPrefix(key, "--") {
-				return classMap, NewTplParseError("", "css.unsupportedProp", token.Pos)
+				return classMap, NewDdlParseError("", "css.unsupportedProp", token.Pos)
 			}
 			expect = ":"
 
@@ -190,12 +190,12 @@ func genCssClassMap(tokens []CSSToken) (CSSClassMap, error) {
 			expect = "class"
 
 		} else {
-			return classMap, NewTplParseError("", "css.unexpectedToken", token.Pos)
+			return classMap, NewDdlParseError("", "css.unexpectedToken", token.Pos)
 		}
 	}
 
 	if expect != "class" {
-		return classMap, NewTplParseError("", "css.unexpectedEnd", -1)
+		return classMap, NewDdlParseError("", "css.unexpectedEnd", -1)
 	}
 
 	return classMap, nil
@@ -225,7 +225,7 @@ func checkCssPropRule(classMap CSSClassMap) error {
 				if valid {
 					break
 				} else {
-					return NewTplParseError("", "css.invalidPropVal", pval[0].Pos)
+					return NewDdlParseError("", "css.invalidPropVal", pval[0].Pos)
 				}
 			}
 		}
@@ -308,7 +308,7 @@ func tokenizeCss(css string) ([]CSSToken, error) {
 				}
 			}
 			if !match {
-				return tokens, NewTplParseError(css, "css.mismatchedSingleQuotationMark", pos)
+				return tokens, NewDdlParseError(css, "css.mismatchedSingleQuotationMark", pos)
 			}
 
 			// string literal
@@ -327,7 +327,7 @@ func tokenizeCss(css string) ([]CSSToken, error) {
 				}
 			}
 			if !match {
-				return tokens, NewTplParseError(css, "css.mismatchedDoubleQuotationMark", pos)
+				return tokens, NewDdlParseError(css, "css.mismatchedDoubleQuotationMark", pos)
 			}
 
 			// color
@@ -407,7 +407,7 @@ func tokenizeCss(css string) ([]CSSToken, error) {
 			}
 
 			if bracketNum > 0 {
-				return tokens, NewTplParseError(css, "css.mismatchedParenthesis", pos+len(funcName))
+				return tokens, NewDdlParseError(css, "css.mismatchedParenthesis", pos+len(funcName))
 			}
 
 			// num
@@ -416,7 +416,7 @@ func tokenizeCss(css string) ([]CSSToken, error) {
 			unitStr := matches[2]
 			unit, ok := cssUnitMap[unitStr]
 			if !ok {
-				return tokens, NewTplParseError(css, "css.unexpectedToken", pos)
+				return tokens, NewDdlParseError(css, "css.unexpectedToken", pos)
 			}
 
 			tokens = append(tokens, CSSToken{
@@ -452,7 +452,7 @@ func tokenizeCss(css string) ([]CSSToken, error) {
 
 			// others
 		} else {
-			return tokens, NewTplParseError(css, "css.unexpectedToken", pos)
+			return tokens, NewDdlParseError(css, "css.unexpectedToken", pos)
 		}
 
 		if pos > blen-1 {

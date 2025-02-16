@@ -100,6 +100,18 @@ var (
 			err: "tpl.invalidForDirective",
 		},
 		{
+			str: `<template def=""></div>`,
+			err: "tpl.invalidDefAttr",
+		},
+		{
+			str: `<template def="test("></div>`,
+			err: "tpl.invalidDefAttr",
+		},
+		{
+			str: `<template def="test(a,b,3)"></div>`,
+			err: "tpl.invalidDefAttr",
+		},
+		{
 			str: `<template></template>`,
 			tpl: []*TplNode{
 				{
@@ -280,6 +292,74 @@ var (
 				},
 			},
 		},
+		{
+			str: `<template def="test()"></template>`,
+			tpl: []*TplNode{
+				{
+					Type:    TplNodeTag,
+					TagName: "template",
+					Def: &Exp{
+						Type:       ExpFunc,
+						FuncName:   "test",
+						FuncParams: []*Exp{},
+					},
+				},
+			},
+		},
+		{
+			str: `<template def="test(a,b,c)"></template>`,
+			tpl: []*TplNode{
+				{
+					Type:    TplNodeTag,
+					TagName: "template",
+					Def: &Exp{
+						Type:     ExpFunc,
+						FuncName: "test",
+						FuncParams: []*Exp{
+							{
+								Type:     ExpVar,
+								Variable: "a",
+							},
+							{
+								Type:     ExpVar,
+								Variable: "b",
+							},
+							{
+								Type:     ExpVar,
+								Variable: "c",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			str: `<template def="panel-link(a,b,c)"></template>`,
+			tpl: []*TplNode{
+				{
+					Type:    TplNodeTag,
+					TagName: "template",
+					Def: &Exp{
+						Type:     ExpFunc,
+						FuncName: "panel-link",
+						FuncParams: []*Exp{
+							{
+								Type:     ExpVar,
+								Variable: "a",
+							},
+							{
+								Type:     ExpVar,
+								Variable: "b",
+							},
+							{
+								Type:     ExpVar,
+								Variable: "c",
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 )
 
@@ -302,6 +382,12 @@ func isTplEqual(a []*TplNode, b []*TplNode) bool {
 
 		if node1.Type == TplNodeTag {
 			if node1.TagName != node2.TagName {
+				return false
+			}
+
+			if (node1.Def != nil && node2.Def == nil) ||
+				(node1.Def == nil && node2.Def != nil) ||
+				(node1.Def != nil && node2.Def != nil && !isExpEqual(*node1.Def, *node2.Def)) {
 				return false
 			}
 
@@ -398,7 +484,7 @@ func TestParseTpl(t *testing.T) {
 		fmt.Printf("- - - - - - - - - - - - - - - - -\ntemplate:\n%s\n", str)
 		parsedTpl, err = ParseTpl(str)
 		if err != nil {
-			if tpe, ok := err.(*TplParseError); ok {
+			if tpe, ok := err.(*DdlParseError); ok {
 				if testCase.err != "" && tpe.err == testCase.err {
 					continue
 				}

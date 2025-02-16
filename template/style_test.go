@@ -1465,7 +1465,7 @@ func TestParseCss(t *testing.T) {
 		fmt.Printf("css: %s\n", str)
 		realClassMap, err = parseCss(str)
 		if err != nil {
-			if tpe, ok := err.(*TplParseError); ok {
+			if tpe, ok := err.(*DdlParseError); ok {
 				if testCase.err != "" && tpe.err == testCase.err {
 					continue
 				}

@@ -35,43 +35,44 @@ var ErrorMap = map[string]string{
 	"tpl.conflictedDirective":           "conflicted directives",
 	"tpl.duplicateEventHandler":         "duplicate event handler",
 	"tpl.invalidForDirective":           "invalid v-for directive",
+	"tpl.invalidDefAttr":                "invalid def attribute",
 }
 
-type TplParseError struct {
+type DdlParseError struct {
 	pos int
-	tpl string
+	ddl string
 	err string
 }
 
-func NewTplParseError(tpl string, err string, pos int) *TplParseError {
-	return &TplParseError{
-		tpl: tpl,
+func NewDdlParseError(ddl string, err string, pos int) *DdlParseError {
+	return &DdlParseError{
+		ddl: ddl,
 		err: err,
 		pos: pos,
 	}
 }
 
-func (tpe *TplParseError) Error() string {
+func (dpe *DdlParseError) Error() string {
 	msg := ""
 
-	if err, ok := ErrorMap[tpe.err]; ok {
+	if err, ok := ErrorMap[dpe.err]; ok {
 		msg = err + "\n"
 	} else {
-		msg = tpe.err + "\n"
+		msg = dpe.err + "\n"
 	}
 
-	if tpe.pos == -1 {
-		tpe.pos = len(tpe.tpl) - 1
+	if dpe.pos == -1 {
+		dpe.pos = len(dpe.ddl) - 1
 	}
 
-	lines := strings.Split(tpe.tpl, "\n")
+	lines := strings.Split(dpe.ddl, "\n")
 	lastLineEndPos := 0
 	errRow := 0
-	errCol := tpe.pos
+	errCol := dpe.pos
 	for idx := 0; idx < len(lines); idx++ {
-		if lastLineEndPos+len(lines[idx]) >= tpe.pos {
+		if lastLineEndPos+len(lines[idx]) >= dpe.pos {
 			errRow = idx
-			errCol = tpe.pos - lastLineEndPos
+			errCol = dpe.pos - lastLineEndPos
 			break
 		}
 		lastLineEndPos += len(lines[idx]) + 1
@@ -98,22 +99,22 @@ func (tpe *TplParseError) Error() string {
 	return msg
 }
 
-func (tpe *TplParseError) AddOffset(offset int) {
-	tpe.pos += offset
+func (dpe *DdlParseError) AddOffset(offset int) {
+	dpe.pos += offset
 }
 
-func (tpe *TplParseError) SetTpl(tpl string) {
-	tpe.tpl = tpl
+func (dpe *DdlParseError) SetDdl(ddl string) {
+	dpe.ddl = ddl
 }
 
-func (tpe *TplParseError) SetPos(pos int) {
-	tpe.pos = pos
+func (dpe *DdlParseError) SetPos(pos int) {
+	dpe.pos = pos
 }
 
-func (tpe *TplParseError) IsExpError() bool {
-	return strings.HasPrefix(tpe.err, "exp")
+func (dpe *DdlParseError) IsExpError() bool {
+	return strings.HasPrefix(dpe.err, "exp")
 }
 
-func (tpe *TplParseError) IsCssError() bool {
-	return strings.HasPrefix(tpe.err, "css")
+func (dpe *DdlParseError) IsCssError() bool {
+	return strings.HasPrefix(dpe.err, "css")
 }
