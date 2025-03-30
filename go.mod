@@ -5,6 +5,7 @@ go 1.19
 require github.com/gdamore/tcell v1.4.0
 
 require (
+	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/gdamore/encoding v1.0.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.0.3 // indirect

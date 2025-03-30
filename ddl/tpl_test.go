@@ -1,4 +1,4 @@
-package template
+package ddl
 
 import (
 	"fmt"
@@ -482,7 +482,7 @@ func TestParseTpl(t *testing.T) {
 	for _, testCase := range parseTplTestCases {
 		str = testCase.str
 		fmt.Printf("- - - - - - - - - - - - - - - - -\ntemplate:\n%s\n", str)
-		parsedTpl, err = ParseTpl(str)
+		parsedTpl, err = parseTpl(str)
 		if err != nil {
 			if tpe, ok := err.(*DdlParseError); ok {
 				if testCase.err != "" && tpe.err == testCase.err {

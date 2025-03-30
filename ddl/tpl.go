@@ -1,4 +1,4 @@
-package template
+package ddl
 
 import (
 	"regexp"
@@ -241,7 +241,7 @@ func (tn *TplNode) setAttr(key string, val string) error {
 	return nil
 }
 
-func ParseTpl(tpl string) ([]*TplNode, error) {
+func parseTpl(tpl string) ([]*TplNode, error) {
 	curTagNode := (*TplNode)(nil)
 	parentTagNode := (*TplNode)(nil)
 	tagNodeStack := make([]*TplNode, 0)

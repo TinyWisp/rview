@@ -1,4 +1,4 @@
-package template
+package ddl
 
 type DDLDef struct {
 	TplMap      map[string]*TplNode
@@ -11,7 +11,7 @@ func ParseDdl(ddl string) (DDLDef, error) {
 		CssClassMap: CSSClassMap{},
 	}
 
-	tplNodes, err := ParseTpl(ddl)
+	tplNodes, err := parseTpl(ddl)
 	if err != nil {
 		return def, err
 	}

@@ -1,6 +1,10 @@
 package rview
 
 import (
+	"fmt"
+	"reflect"
+
+	"github.com/TinyWisp/rview/ddl"
 	"github.com/gdamore/tcell"
 )
 
@@ -11,94 +15,227 @@ const RUNE_EMPTY = ' '
 const (
 	POSITION_ABSOLUTE = 1
 	POSITION_RELATIVE = 2
-	POSITION_FIXED = 3
+	POSITION_FIXED    = 3
 )
 
 type Cell struct {
 	style tcell.Style
-	ch rune
+	ch    rune
 }
 
 type Layout struct {
-	marginLeft int
-	marginTop int
-	marginRight int
+	marginLeft   int
+	marginTop    int
+	marginRight  int
 	marginBottom int
 
-	borderLeft int
-	borderTop int
-	borderRight int
+	borderLeft   int
+	borderTop    int
+	borderRight  int
 	borderBottom int
 
-	paddingLeft int
-	paddingTop int
-	paddingRight int
+	paddingLeft   int
+	paddingTop    int
+	paddingRight  int
 	paddingBottom int
 
-	width int
+	width  int
 	height int
 
-	scrollWidth int
+	scrollWidth  int
 	scrollHeight int
-	scrollLeft int
-	scrollTop int
+	scrollLeft   int
+	scrollTop    int
 
 	offsetLeft int
-	offsetTop int
-	pageLeft int
-	pageTop int
+	offsetTop  int
+	pageLeft   int
+	pageTop    int
 
 	position int
-	left int
-	top int
+	left     int
+	top      int
 }
 
 type Style struct {
-	display string
-	position string
-	width string
-	height string
+	display         string
+	position        string
+	width           string
+	height          string
 	backgroundColor string
-	textColor string
+	textColor       string
 }
 
 type ComputedStyle struct {
-	display int
+	display  int
 	position int
-	left int
-	top int
+	left     int
+	top      int
+}
+
+type ComponentInstance struct {
+	Comp        interface{}
+	compMap     map[string]interface{}
+	ddl         string
+	Parent      *ComponentInstance
+	Children    []*ComponentInstance
+	App         *ComponentInstance
+	tplMap      map[string]*ddl.TplNode
+	cssClassMap ddl.CSSClassMap
+	prevTree    *ddl.TplNode
+	curTree     *ddl.TplNode
+	root        *ComponentInstance
+	defaultSlot []*ComponentInstance
+	cache       map[string]*ComponentInstance
+	buffer      [][]Cell
+	width       int
+	height      int
+	layout      Layout
+	style       Style
 }
 
 type Component struct {
-	name string
-	components map[string]Component
-	template string
-	parent *Component
-	children []*Component
-	app *Component
-	buffer [][]Cell
-	width int
-	height int
-	layout Layout
-	style Style
+	Name string
+	Ddl  string
+	Inst *ComponentInstance
 }
 
-func (c *Component) Render() {
+type Initable interface {
+	Init()
 }
 
-func (c *Component) Init() {
-
+type Renderable interface {
+	Render()
 }
 
-func (c *Component) InitBuffer() {
+func (c *ComponentInstance) Render() {
+}
+
+func (c *ComponentInstance) GetCompProp(field string, expectType interface{}) (interface{}, error) {
+	comp := reflect.ValueOf(c.Comp).Elem()
+	val := comp.FieldByName(field)
+
+	if !val.IsValid() {
+		return nil, NewError("comp.propNotExist")
+	}
+
+	if reflect.TypeOf(val) != reflect.TypeOf(expectType) {
+		return nil, NewError("comp.typeNotAsExpected")
+	}
+
+	return val.Interface(), nil
+}
+
+func (c *ComponentInstance) SetCompProp(field string, val interface{}) error {
+	comp := reflect.ValueOf(c.Comp).Elem()
+	curVal := comp.FieldByName(field)
+
+	if !curVal.IsValid() {
+		return NewError("comp.SetCompProp.propNotExist")
+	}
+
+	if curVal.Type() != reflect.TypeOf(val) {
+		fmt.Println(reflect.TypeOf(curVal))
+		fmt.Println(reflect.TypeOf(val))
+		return NewError("comp.SetCompProp.typeMismatch %s %s", reflect.TypeOf(curVal), reflect.TypeOf(val))
+	}
+
+	/*
+		if !curVal.CanSet() {
+			return NewError("comp.SetCompProp.cannotSetFieldValue")
+		}
+	*/
+
+	curVal.Set(reflect.ValueOf(val))
+	return nil
+}
+
+func (c *ComponentInstance) CreateChildInstance(node *ddl.TplNode, parent *ComponentInstance) (*ComponentInstance, error) {
+	tagName := node.TagName
+	instance := &ComponentInstance{}
+	if comp, ok := c.compMap[tagName]; ok {
+		ncomp := reflect.New(reflect.TypeOf(comp)).Interface()
+		instance.Comp = ncomp
+		instance.Parent = parent
+		instance.Init()
+	} else {
+		return nil, NewError("comp.cannotResolveComponent", tagName)
+	}
+
+	cinsts := []*ComponentInstance{}
+	for _, child := range node.Children {
+		if cinst, err := c.CreateChildInstance(child, instance); err == nil {
+			cinsts = append(cinsts, cinst)
+		} else {
+			return nil, err
+		}
+	}
+	instance.defaultSlot = cinsts
+	instance.Children = append(instance.Children, cinsts...)
+
+	return instance, nil
+}
+
+func (c *ComponentInstance) Init() error {
+	if initableComp, ok := c.Comp.(Initable); ok {
+		initableComp.Init()
+	}
+
+	if err := c.cloneCompMap(); err != nil {
+		return err
+	}
+
+	if err2 := c.parseDdl(); err2 != nil {
+		return err2
+	}
+
+	_, err3 := c.CreateChildInstance(c.tplMap["main"], c)
+	if err3 != nil {
+		return err3
+	}
+	c.SetCompProp("Inst", c)
+
+	return nil
+}
+
+func (c *ComponentInstance) cloneCompMap() error {
+	components, err := c.GetCompProp("components", map[string]interface{}{})
+	if err != nil {
+		return err
+	}
+
+	c.compMap = components.(map[string]interface{})
+
+	return nil
+}
+
+func (c *ComponentInstance) parseDdl() error {
+	ddlInterface, err := c.GetCompProp("Ddl", "")
+	if err != nil {
+		return err
+	}
+
+	ddlStr := ddlInterface.(string)
+	def, err2 := ddl.ParseDdl(ddlStr)
+	if err2 != nil {
+		return err2
+	}
+
+	c.tplMap = def.TplMap
+	c.cssClassMap = def.CssClassMap
+
+	return nil
+}
+
+func (c *ComponentInstance) InitBuffer() {
 	colNum := 0
 	rowNum := 0
 
-	if (c.style.height != "auto") {
+	if c.style.height != "auto" {
 		rowNum = c.layout.height
 	}
 
-	if (c.style.width != "auto") {
+	if c.style.width != "auto" {
 		colNum = c.layout.width
 	}
 
@@ -111,58 +248,58 @@ func (c *Component) InitBuffer() {
 	}
 }
 
-func (c *Component) ExtendBuffer(rowNum int, colNum int) {
-	if (rowNum >= len(c.buffer)) {
-		for i:=len(c.buffer); i<=rowNum; i++ {
+func (c *ComponentInstance) ExtendBuffer(rowNum int, colNum int) {
+	if rowNum >= len(c.buffer) {
+		for i := len(c.buffer); i <= rowNum; i++ {
 			c.buffer[i] = make([]Cell, rowNum)
-			for j:=0; j<rowNum; j++ {
+			for j := 0; j < rowNum; j++ {
 				c.buffer[i][j] = c.EmptyCell()
 			}
 		}
 	}
 }
 
-func (c *Component) calcWidth() {
-	
-}
-
-func (c *Component) calcHeight() {
+func (c *ComponentInstance) calcWidth() {
 
 }
 
-func (c *Component) calcPageX() {
+func (c *ComponentInstance) calcHeight() {
+
+}
+
+func (c *ComponentInstance) calcPageX() {
 	if c.style.position == "fixed" {
-		c.layout.pageLeft = c.app.layout.scrollLeft + c.layout.offsetLeft
-		c.layout.pageTop = c.app.layout.scrollTop + c.layout.offsetTop
+		c.layout.pageLeft = c.App.layout.scrollLeft + c.layout.offsetLeft
+		c.layout.pageTop = c.App.layout.scrollTop + c.layout.offsetTop
 	} else if c.style.position == "absolute" {
-		c.layout.pageLeft = c.parent.layout.pageLeft + c.layout.offsetLeft
-		c.layout.pageTop = c.parent.layout.pageTop + c.layout.offsetTop
+		c.layout.pageLeft = c.Parent.layout.pageLeft + c.layout.offsetLeft
+		c.layout.pageTop = c.Parent.layout.pageTop + c.layout.offsetTop
 	} else if c.style.position == "relative" {
-		c.layout.pageLeft = c.parent.layout.pageLeft
+		c.layout.pageLeft = c.Parent.layout.pageLeft
 	}
 }
 
-func (c *Component) calcPageY() {
+func (c *ComponentInstance) calcPageY() {
 
 }
 
-func (c *Component) Merge() {
+func (c *ComponentInstance) Merge() {
 
 }
 
-func (c *Component) EmptyCell() Cell {
+func (c *ComponentInstance) EmptyCell() Cell {
 	return Cell{
 		ch: RUNE_EMPTY,
 	}
 }
 
-func (c *Component) SetCell(x int, y int, cell Cell) {
-	if (y >= len(c.buffer)) {
-		appendRows := make([][]Cell, y - len(c.buffer) + 1)
+func (c *ComponentInstance) SetCell(x int, y int, cell Cell) {
+	if y >= len(c.buffer) {
+		appendRows := make([][]Cell, y-len(c.buffer)+1)
 		for i := range appendRows {
 			appendRows[i] = make([]Cell, c.layout.width)
 			if c.style.width != "auto" {
-				for j:=0; j<c.layout.width; j++ {
+				for j := 0; j < c.layout.width; j++ {
 					appendRows[i][j] = c.EmptyCell()
 				}
 			}
@@ -170,8 +307,8 @@ func (c *Component) SetCell(x int, y int, cell Cell) {
 		c.buffer = append(c.buffer, appendRows...)
 	}
 
-	if (x >= len(c.buffer[y])) {
-		appendCols := make([]Cell, x - len(c.buffer[y]) + 1)
+	if x >= len(c.buffer[y]) {
+		appendCols := make([]Cell, x-len(c.buffer[y])+1)
 		for i := range appendCols {
 			appendCols[i] = c.EmptyCell()
 		}
@@ -180,14 +317,14 @@ func (c *Component) SetCell(x int, y int, cell Cell) {
 
 	c.buffer[y][x] = cell
 
-	if (c.layout.scrollWidth < x + 1) {
-		c.layout.scrollWidth = x + 1;
+	if c.layout.scrollWidth < x+1 {
+		c.layout.scrollWidth = x + 1
 	}
-	if (c.layout.scrollHeight < y + 1) {
-		c.layout.scrollHeight = y + 1;
+	if c.layout.scrollHeight < y+1 {
+		c.layout.scrollHeight = y + 1
 	}
 }
 
-func (c *Component) SetContent(x int, y int, cnt string, style tcell.Style) {
+func (c *ComponentInstance) SetContent(x int, y int, cnt string, style tcell.Style) {
 
 }
