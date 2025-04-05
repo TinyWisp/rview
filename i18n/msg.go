@@ -32,7 +32,14 @@ var msgMap = map[string]string{
 	"tpl.invalidForDirective":           "invalid v-for directive",
 	"tpl.invalidDefAttr":                "invalid def attribute",
 
-	"comp.unregisteredComponent":    "unregistered component: %s",
+	"util.SetStructField.fieldNotExist":       "invalid field: %s",
+	"util.SetStructField.typeMismatch":        "cannot assign %s to %s",
+	"util.SetStructField.unexportedField":     "unexported field: %s",
+	"util.SetStructField.cannotSetFieldValue": "cannot set the value of the field: %s",
+	"util.GetStructField.fieldNotExist":       "invalid field: %s",
+	"util.GetStructField.unexportedField":     "unexported field: %s",
+
+	"comp.unregisteredutilonent":    "unregistered utilonent: %s",
 	"comp.cannotResolveComponent":   "failed to resolve component: %s",
 	"comp.SetCompProp.propNotExist": "invalid property: %s",
 	"comp.SetCompProp.typeMismatch": "cannot assign %s to %s",

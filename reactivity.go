@@ -1,6 +1,7 @@
 package rview
 
 import (
+	"reflect"
 	"sync"
 )
 
@@ -23,11 +24,6 @@ type Trackable interface {
 	AddTracker(tracker *Tracker)
 	RemoveTracker(tracker *Tracker)
 	Trigger()
-}
-
-type Refable[T any] interface {
-	Get() T
-	Set(val T)
 }
 
 var activeTrackerMgr *ActiveTrackerMgr = &ActiveTrackerMgr{}
@@ -118,6 +114,14 @@ func (r *Ref[T]) Set(val T) {
 	r.Trigger()
 }
 
+func (r *Ref[T]) isRef() bool {
+	return true
+}
+
+func (r *Ref[T]) Type() reflect.Type {
+	return reflect.TypeOf(r.value)
+}
+
 func (r *Ref[T]) AddTracker(tracker *Tracker) {
 	for _, otracker := range r.trackers {
 		if otracker == tracker {
@@ -140,4 +144,9 @@ func (r *Ref[T]) Trigger() {
 	for _, tracker := range r.trackers {
 		tracker.RunAndWatch()
 	}
+}
+
+func isRef(v interface{}) bool {
+	_, ok := v.(interface{ isRef() bool })
+	return ok
 }

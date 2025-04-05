@@ -57,3 +57,11 @@ func TestEmbedReactivity(t *testing.T) {
 		t.Fatalf("1.Reactivity doesn't work as expected. a=%d, b=%d, avg=%d", a.Get(), b.Get(), avg.Get())
 	}
 }
+
+func TestIsRef(t *testing.T) {
+	a := NewRef[int](1)
+
+	if !isRef(a) {
+		t.Fatalf("isRef doesn't work as expected.")
+	}
+}

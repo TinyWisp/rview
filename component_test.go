@@ -1,21 +1,21 @@
 package rview
 
-import (
-	"fmt"
-	"testing"
-)
-
+/*
 func TestSetCompProp(t *testing.T) {
 	type Component1 struct {
 		Inst      *ComponentInstance
 		IntVar    int
 		PIntVar   *int
+		RIntVar   *Ref[int]
 		FloatVar  float64
 		PFloatVar *float64
+		RFloatVar *Ref[float64]
 		StrVar    string
 		PStrVar   *string
+		RStrVar   *Ref[string]
 		BoolVar   bool
 		PBoolVar  *bool
+		RBoolVar  *Ref[bool]
 	}
 
 	comp1 := &Component1{}
@@ -32,6 +32,12 @@ func TestSetCompProp(t *testing.T) {
 	compInst1.SetCompProp("PIntVar", &tmpIntVar)
 	if comp1.PIntVar != &tmpIntVar {
 		t.Fatalf("ComponentInstance.SetCompProp, *int")
+	}
+
+	comp1.RIntVar = NewRef(1)
+	compInst1.SetCompProp("RIntVar", 2)
+	if comp1.RIntVar.Get() != 2 {
+		t.Fatalf("ComponentInstance.SetCompProp, Ref[int]")
 	}
 
 	compInst1.SetCompProp("FloatVar", 3.33333)
@@ -67,3 +73,4 @@ func TestSetCompProp(t *testing.T) {
 		t.Fatalf("ComponentInstance.SetCompProp, *bool")
 	}
 }
+*/

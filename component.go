@@ -134,6 +134,18 @@ func (c *ComponentInstance) SetCompProp(field string, val interface{}) error {
 		return NewError("comp.SetCompProp.propNotExist")
 	}
 
+	if isRef(curVal.Interface()) {
+		if typable, ok := curVal.Interface().(interface{ Type() reflect.Type }); ok {
+			if curVal.Type() != typable.Type() {
+				return NewError("comp.SetCompProp.typeMismatch", reflect.TypeOf(curVal), typable.Type())
+			}
+		}
+
+		setMethod := curVal.MethodByName("Set")
+		setMethod.Call([]reflect.Value{reflect.ValueOf(val)})
+		return nil
+	}
+
 	if curVal.Type() != reflect.TypeOf(val) {
 		fmt.Println(reflect.TypeOf(curVal))
 		fmt.Println(reflect.TypeOf(val))
