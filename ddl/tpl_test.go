@@ -364,7 +364,7 @@ var (
 )
 
 func isTplForEqual(a TplFor, b TplFor) bool {
-	return a.Idx == b.Idx && a.Item == b.Item && isExpEqual(a.Range, b.Range)
+	return a.Idx == b.Idx && a.Item == b.Item && (&a).Range.Equal(&b.Range)
 }
 
 func isTplEqual(a []*TplNode, b []*TplNode) bool {
@@ -387,25 +387,25 @@ func isTplEqual(a []*TplNode, b []*TplNode) bool {
 
 			if (node1.Def != nil && node2.Def == nil) ||
 				(node1.Def == nil && node2.Def != nil) ||
-				(node1.Def != nil && node2.Def != nil && !isExpEqual(*node1.Def, *node2.Def)) {
+				(node1.Def != nil && node2.Def != nil && !node1.Def.Equal(node2.Def)) {
 				return false
 			}
 
 			if (node1.If != nil && node2.If == nil) ||
 				(node1.If == nil && node2.If != nil) ||
-				(node1.If != nil && node2.If != nil && !isExpEqual(*node1.If, *node2.If)) {
+				(node1.If != nil && node2.If != nil && !node1.If.Equal(node2.If)) {
 				return false
 			}
 
 			if (node1.ElseIf != nil && node2.ElseIf == nil) ||
 				(node1.ElseIf == nil && node2.ElseIf != nil) ||
-				(node1.ElseIf != nil && node2.ElseIf != nil && !isExpEqual(*node1.ElseIf, *node2.ElseIf)) {
+				(node1.ElseIf != nil && node2.ElseIf != nil && !node1.ElseIf.Equal(node2.ElseIf)) {
 				return false
 			}
 
 			if (node1.Else != nil && node2.Else == nil) ||
 				(node1.Else == nil && node2.Else != nil) ||
-				(node1.Else != nil && node2.Else != nil && !isExpEqual(*node1.Else, *node2.Else)) {
+				(node1.Else != nil && node2.Else != nil && !node1.Else.Equal(node2.Else)) {
 				return false
 			}
 
@@ -426,7 +426,7 @@ func isTplEqual(a []*TplNode, b []*TplNode) bool {
 					if _, ok := node2.Binds[bkey]; !ok {
 						return false
 					}
-					if !isExpEqual(*bval, *node2.Binds[bkey]) {
+					if !bval.Equal(node2.Binds[bkey]) {
 						return false
 					}
 				}
@@ -443,7 +443,7 @@ func isTplEqual(a []*TplNode, b []*TplNode) bool {
 					if _, ok := node2.Events[ekey]; !ok {
 						return false
 					}
-					if !isExpEqual(*eval, *node2.Events[ekey]) {
+					if !eval.Equal(node2.Events[ekey]) {
 						return false
 					}
 				}

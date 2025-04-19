@@ -2,6 +2,8 @@ package ddl
 
 import (
 	"errors"
+	"math"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -69,6 +71,7 @@ type Exp struct {
 	Right           *Exp
 	TenaryCondition *Exp
 	Pos             int
+	Interface       interface{}
 }
 
 type ExpType int
@@ -84,7 +87,22 @@ const (
 	ExpFunc
 	ExpCalc
 	ExpMap
+	ExpInterface
 )
+
+var ExpTypeName = map[ExpType]string{
+	ExpStr:       "string",
+	ExpInt:       "int",
+	ExpFloat:     "float",
+	ExpBool:      "bool",
+	ExpNil:       "nil",
+	ExpVar:       "variable",
+	ExpOperator:  "operator",
+	ExpFunc:      "function",
+	ExpCalc:      "calculation",
+	ExpMap:       "map",
+	ExpInterface: "interface",
+}
 
 type ExpOperatorDirection int
 
@@ -557,4 +575,100 @@ func ParseExp(str string) (*Exp, error) {
 	}
 
 	return tree, nil
+}
+
+func (a *Exp) Equal(b *Exp) bool {
+	if a == nil && b == nil {
+		return true
+	}
+
+	if (a != nil && b == nil) ||
+		(a == nil && b != nil) {
+		return false
+	}
+
+	if a.Type != b.Type {
+		return false
+	}
+
+	switch a.Type {
+	case ExpInt:
+		if a.Int != b.Int {
+			return false
+		}
+
+	case ExpFloat:
+		if math.Abs(a.Float-b.Float) > 1e-9 {
+			return false
+		}
+
+	case ExpBool:
+		if a.Bool != b.Bool {
+			return false
+		}
+
+	case ExpStr:
+		if a.Str != b.Str {
+			return false
+		}
+
+	case ExpVar:
+		if a.Variable != b.Variable {
+			return false
+		}
+
+	case ExpOperator:
+		if a.Operator != b.Operator {
+			return false
+		}
+
+	case ExpFunc:
+		if a.FuncName != b.FuncName || len(a.FuncParams) != len(b.FuncParams) {
+			return false
+		}
+		for i := 0; i < len(a.FuncParams); i++ {
+			if !a.FuncParams[i].Equal(b.FuncParams[i]) {
+				return false
+			}
+		}
+
+	case ExpMap:
+		if len(a.Map) != len(b.Map) {
+			return false
+		}
+		for k, v := range a.Map {
+			if b.Map[k] == nil {
+				return false
+			}
+			if !v.Equal(b.Map[k]) {
+				return false
+			}
+		}
+
+	case ExpCalc:
+		if a.Operator != b.Operator ||
+			(a.Left == nil && b.Left != nil) ||
+			(a.Left != nil && b.Left == nil) ||
+			(a.Right == nil && b.Right != nil) ||
+			(a.Right != nil && b.Right == nil) ||
+			(a.Left != nil && b.Left != nil && !a.Left.Equal(b.Left)) ||
+			(a.Right != nil && b.Right != nil && !a.Right.Equal(b.Right)) {
+			return false
+		}
+		if a.Operator == "?" && !a.TenaryCondition.Equal(b.TenaryCondition) {
+			return false
+		}
+
+	case ExpInterface:
+		aval := reflect.ValueOf(a.Interface)
+		bval := reflect.ValueOf(b.Interface)
+		if aval.Comparable() {
+			return aval.Equal(bval)
+		}
+		if aval.Pointer() != bval.Pointer() {
+			return false
+		}
+	}
+
+	return true
 }

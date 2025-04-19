@@ -155,13 +155,32 @@ func TestGetStructField(t *testing.T) {
 		unexported int
 	}
 
+	tmpIntVar := 6
+
 	test := &TestStruct{
-		IntVar: 3,
+		IntVar:  3,
+		PIntVar: &tmpIntVar,
+		RIntVar: NewRef(9),
 	}
 
 	intVar, err := GetStructField(test, "IntVar")
 	if err != nil || intVar.(int) != 3 {
 		t.Fatalf("util.GetStructField, int")
+	}
+
+	pintVar, err2 := GetStructField(test, "PIntVar")
+	if err2 != nil || *(pintVar.(*int)) != 6 {
+		t.Fatalf("util.GetStructField, *int")
+	}
+
+	intVar, err = GetStructField(test, "RIntVar")
+	if err != nil || intVar.(int) != 9 {
+		t.Fatalf("util.GetStructField, *Ref[int]")
+	}
+
+	_, err = GetStructField(test, "abcd")
+	if err == nil || !IsErrorType(err, "util.GetStructField.fieldNotExist") {
+		t.Fatalf("util.GetStructField, field not exist")
 	}
 
 	_, err = GetStructField(test, "unexported")

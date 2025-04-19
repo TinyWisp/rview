@@ -2,7 +2,6 @@ package ddl
 
 import (
 	"fmt"
-	"math"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
@@ -958,83 +957,6 @@ var (
 	}
 )
 
-func isExpEqual(a Exp, b Exp) bool {
-	if a.Type != b.Type {
-		return false
-	}
-
-	switch a.Type {
-	case ExpInt:
-		if a.Int != b.Int {
-			return false
-		}
-
-	case ExpFloat:
-		if math.Abs(a.Float-b.Float) > 1e-9 {
-			return false
-		}
-
-	case ExpBool:
-		if a.Bool != b.Bool {
-			return false
-		}
-
-	case ExpStr:
-		if a.Str != b.Str {
-			return false
-		}
-
-	case ExpVar:
-		if a.Variable != b.Variable {
-			return false
-		}
-
-	case ExpOperator:
-		if a.Operator != b.Operator {
-			return false
-		}
-
-	case ExpFunc:
-		if a.FuncName != b.FuncName || len(a.FuncParams) != len(b.FuncParams) {
-			return false
-		}
-		for i := 0; i < len(a.FuncParams); i++ {
-			if !isExpEqual(*a.FuncParams[i], *b.FuncParams[i]) {
-				return false
-			}
-		}
-
-	case ExpMap:
-		if len(a.Map) != len(b.Map) {
-			return false
-		}
-		for k, v := range a.Map {
-			if b.Map[k] == nil {
-				return false
-			}
-			if !isExpEqual(*v, *b.Map[k]) {
-				return false
-			}
-		}
-
-	case ExpCalc:
-		if a.Operator != b.Operator ||
-			(a.Left == nil && b.Left != nil) ||
-			(a.Left != nil && b.Left == nil) ||
-			(a.Right == nil && b.Right != nil) ||
-			(a.Right != nil && b.Right == nil) ||
-			(a.Left != nil && b.Left != nil && !isExpEqual(*a.Left, *b.Left)) ||
-			(a.Right != nil && b.Right != nil && !isExpEqual(*a.Right, *b.Right)) {
-			return false
-		}
-		if a.Operator == "?" && !isExpEqual(*a.TenaryCondition, *b.TenaryCondition) {
-			return false
-		}
-	}
-
-	return true
-}
-
 func TestParseExp(t *testing.T) {
 	var realExp *Exp
 	var err error
@@ -1050,7 +972,7 @@ func TestParseExp(t *testing.T) {
 				}
 			}
 			t.Fatalf("error: %s", err)
-		} else if !isExpEqual(*realExp, testCase.exp) {
+		} else if !realExp.Equal(&testCase.exp) {
 			spew.Dump(*realExp)
 			spew.Dump(testCase.exp)
 			t.Fatalf("the expression is not parsed as expected\n")

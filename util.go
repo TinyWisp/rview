@@ -64,5 +64,11 @@ func GetStructField(structVar interface{}, field string) (interface{}, error) {
 		return nil, NewError("util.GetStructField.unexportedField", field)
 	}
 
+	if isRef(fieldVal.Interface()) {
+		getMethod := fieldVal.MethodByName("Get")
+		vals := getMethod.Call([]reflect.Value{})
+		return vals[0].Interface(), nil
+	}
+
 	return fieldVal.Interface(), nil
 }

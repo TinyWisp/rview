@@ -1,7 +1,6 @@
 package rview
 
 import (
-	"fmt"
 	"reflect"
 
 	"github.com/TinyWisp/rview/ddl"
@@ -111,55 +110,14 @@ type Renderable interface {
 func (c *ComponentInstance) Render() {
 }
 
-func (c *ComponentInstance) GetCompProp(field string, expectType interface{}) (interface{}, error) {
-	comp := reflect.ValueOf(c.Comp).Elem()
-	val := comp.FieldByName(field)
+func (c *ComponentInstance) GetCompField(field string) (interface{}, error) {
+	val, err := GetStructField(c.Comp, field)
 
-	if !val.IsValid() {
-		return nil, NewError("comp.propNotExist")
-	}
-
-	if reflect.TypeOf(val) != reflect.TypeOf(expectType) {
-		return nil, NewError("comp.typeNotAsExpected")
-	}
-
-	return val.Interface(), nil
+	return val, err
 }
 
-func (c *ComponentInstance) SetCompProp(field string, val interface{}) error {
-	comp := reflect.ValueOf(c.Comp).Elem()
-	curVal := comp.FieldByName(field)
-
-	if !curVal.IsValid() {
-		return NewError("comp.SetCompProp.propNotExist")
-	}
-
-	if isRef(curVal.Interface()) {
-		if typable, ok := curVal.Interface().(interface{ Type() reflect.Type }); ok {
-			if curVal.Type() != typable.Type() {
-				return NewError("comp.SetCompProp.typeMismatch", reflect.TypeOf(curVal), typable.Type())
-			}
-		}
-
-		setMethod := curVal.MethodByName("Set")
-		setMethod.Call([]reflect.Value{reflect.ValueOf(val)})
-		return nil
-	}
-
-	if curVal.Type() != reflect.TypeOf(val) {
-		fmt.Println(reflect.TypeOf(curVal))
-		fmt.Println(reflect.TypeOf(val))
-		return NewError("comp.SetCompProp.typeMismatch %s %s", reflect.TypeOf(curVal), reflect.TypeOf(val))
-	}
-
-	/*
-		if !curVal.CanSet() {
-			return NewError("comp.SetCompProp.cannotSetFieldValue")
-		}
-	*/
-
-	curVal.Set(reflect.ValueOf(val))
-	return nil
+func (c *ComponentInstance) SetCompField(field string, val interface{}) error {
+	return SetStructField(c.Comp, field, val)
 }
 
 func (c *ComponentInstance) CreateChildInstance(node *ddl.TplNode, parent *ComponentInstance) (*ComponentInstance, error) {
@@ -205,13 +163,13 @@ func (c *ComponentInstance) Init() error {
 	if err3 != nil {
 		return err3
 	}
-	c.SetCompProp("Inst", c)
+	c.SetCompField("Inst", c)
 
 	return nil
 }
 
 func (c *ComponentInstance) cloneCompMap() error {
-	components, err := c.GetCompProp("components", map[string]interface{}{})
+	components, err := c.GetCompField("components")
 	if err != nil {
 		return err
 	}
@@ -222,7 +180,7 @@ func (c *ComponentInstance) cloneCompMap() error {
 }
 
 func (c *ComponentInstance) parseDdl() error {
-	ddlInterface, err := c.GetCompProp("Ddl", "")
+	ddlInterface, err := c.GetCompField("Ddl")
 	if err != nil {
 		return err
 	}

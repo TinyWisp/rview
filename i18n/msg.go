@@ -39,6 +39,9 @@ var msgMap = map[string]string{
 	"util.GetStructField.fieldNotExist":       "invalid field: %s",
 	"util.GetStructField.unexportedField":     "unexported field: %s",
 
+	"calc.emptyVariableName": "empty variable name",
+	"calc.operandTypeMismatch": "Type mismatch - cannot perform '%s' operation between '%s' and '%s'",
+
 	"comp.unregisteredutilonent":    "unregistered utilonent: %s",
 	"comp.cannotResolveComponent":   "failed to resolve component: %s",
 	"comp.SetCompProp.propNotExist": "invalid property: %s",
