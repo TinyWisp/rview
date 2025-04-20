@@ -39,8 +39,10 @@ var msgMap = map[string]string{
 	"util.GetStructField.fieldNotExist":       "invalid field: %s",
 	"util.GetStructField.unexportedField":     "unexported field: %s",
 
-	"calc.emptyVariableName": "empty variable name",
-	"calc.operandTypeMismatch": "Type mismatch - cannot perform '%s' operation between '%s' and '%s'",
+	"calc.emptyVariableName":       "empty variable name",
+	"calc.operandTypeMismatch":     "Type mismatch - cannot perform '%s' operation between '%s' and '%s'",
+	"calc.invalidTernaryCondition": "The ternary condition must evaluate to a boolean. Received type '%s'",
+	"calc.ternaryDataNotSameType":  `In a ternary expression "exp ? a : b", a and b must have the same data type.`,
 
 	"comp.unregisteredutilonent":    "unregistered utilonent: %s",
 	"comp.cannotResolveComponent":   "failed to resolve component: %s",

@@ -8,8 +8,8 @@ import (
 )
 
 type CalcExpCase struct {
-	exp    *ddl.Exp
-	expect *ddl.Exp
+	exp    string
+	expect string
 	err    string
 }
 
@@ -17,2473 +17,828 @@ type AnimalStruct struct {
 	Name string
 }
 
-var chickenStruct1 = AnimalStruct{Name: "chicken"}
-var chickenStruct2 = AnimalStruct{Name: "chicken"}
-var duckStruct1 = AnimalStruct{Name: "duck"}
-var intvar1 int = 2
-var floatvar1 float64 = 2.0
-var stringvar1 string = "world"
+var variableMap = map[string]interface{}{
+	"chickenStruct":  AnimalStruct{Name: "chicken"},
+	"duckStruct":     AnimalStruct{Name: "duck"},
+	"int8var2":       int8(2),
+	"int16var2":      int16(2),
+	"int32var2":      int32(2),
+	"int64var2":      int64(2),
+	"uint8var2":      int8(2),
+	"uint16var2":     int16(2),
+	"uint32var2":     int32(2),
+	"uint64var2":     int64(2),
+	"float32var3":    float32(3.0),
+	"float64var3":    float64(3.0),
+	"stringvarhello": "hello",
+	"stringvarworld": "world",
+	"stringvarName":  "Name",
+	"boolvarfalse":   false,
+	"boolvartrue":    true,
+	"nilvar":         nil,
+	"mapStrStr": map[string]string{
+		"hello": "hello",
+		"world": "world",
+	},
+	"arrStr": []string{"hello", "world"},
+}
+
+func getVariable(name string) (interface{}, error) {
+	if val, ok := variableMap[name]; ok {
+		return val, nil
+	}
+
+	return nil, nil
+}
 
 var calcExpCases = []CalcExpCase{
 	{
-		exp: &ddl.Exp{
-			Type: ddl.ExpInt,
-			Int:  1,
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpInt,
-			Int:  1,
-		},
+		exp:    `1`,
+		expect: `1`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:  ddl.ExpFloat,
-			Float: 123.5,
-		},
-		expect: &ddl.Exp{
-			Type:  ddl.ExpFloat,
-			Float: 123.5,
-		},
+		exp:    `123.5`,
+		expect: `123.5`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `true`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type: ddl.ExpNil,
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpNil,
-		},
+		exp:    `nil`,
+		expect: `nil`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type: ddl.ExpStr,
-			Str:  "hello",
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpStr,
-			Str:  "hello",
-		},
-	},
-	{
-		exp: &ddl.Exp{
-			Type:      ddl.ExpInterface,
-			Interface: "hello",
-		},
-		expect: &ddl.Exp{
-			Type:      ddl.ExpInterface,
-			Interface: "hello",
-		},
-	},
-	{
-		exp: &ddl.Exp{
-			Type:      ddl.ExpInterface,
-			Interface: chickenStruct1,
-		},
-		expect: &ddl.Exp{
-			Type:      ddl.ExpInterface,
-			Interface: chickenStruct1,
-		},
+		exp:    `"hello"`,
+		expect: `"hello"`,
 	},
 
 	// -----------------   +   ----------------------
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "+",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  -1,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  3,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpInt,
-			Int:  2,
-		},
+		exp:    `1+3`,
+		expect: "4",
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "+",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  1,
-			},
-			Right: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 1.2,
-			},
-		},
-		expect: &ddl.Exp{
-			Type:  ddl.ExpFloat,
-			Float: 2.2,
-		},
+		exp:    `1+1.2`,
+		expect: `2.2`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "+",
-			Left: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 1.2,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  1,
-			},
-		},
-		expect: &ddl.Exp{
-			Type:  ddl.ExpFloat,
-			Float: 2.2,
-		},
+		exp:    `1.2+1`,
+		expect: `2.2`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "+",
-			Left: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 1.2,
-			},
-			Right: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.5,
-			},
-		},
-		expect: &ddl.Exp{
-			Type:  ddl.ExpFloat,
-			Float: 3.7,
-		},
+		exp:    `1.2+2.5`,
+		expect: `3.7`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "+",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  3,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpStr,
-				Str:  "hello",
-			},
-		},
+		exp: `3+"hello"`,
 		err: "calc.operandTypeMismatch",
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "+",
-			Left: &ddl.Exp{
-				Type: ddl.ExpBool,
-				Bool: true,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  1,
-			},
-		},
+		exp: `true+3`,
 		err: "calc.operandTypeMismatch",
 	},
 
 	// -----------------   -   ----------------------
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "-",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  2,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  1,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpInt,
-			Int:  1,
-		},
+		exp:    `2-1`,
+		expect: `1`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "-",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  3,
-			},
-			Right: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 1.2,
-			},
-		},
-		expect: &ddl.Exp{
-			Type:  ddl.ExpFloat,
-			Float: 1.8,
-		},
+		exp:    `3-1.2`,
+		expect: `1.8`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "-",
-			Left: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 1.2,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  1,
-			},
-		},
-		expect: &ddl.Exp{
-			Type:  ddl.ExpFloat,
-			Float: 0.2,
-		},
+		exp:    `1.2-1`,
+		expect: `0.2`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "-",
-			Left: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 1.2,
-			},
-			Right: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.5,
-			},
-		},
-		expect: &ddl.Exp{
-			Type:  ddl.ExpFloat,
-			Float: -1.3,
-		},
+		exp:    `2.5-1.2`,
+		expect: `1.3`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "-",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  3,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpStr,
-				Str:  "hello",
-			},
-		},
+		exp: `3-"hello"`,
 		err: "calc.operandTypeMismatch",
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "-",
-			Left: &ddl.Exp{
-				Type: ddl.ExpBool,
-				Bool: true,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  1,
-			},
-		},
+		exp: `true-1`,
 		err: "calc.operandTypeMismatch",
 	},
 
 	// -----------------   *   ----------------------
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "*",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  2,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  -3,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpInt,
-			Int:  -6,
-		},
+		exp:    `2*3`,
+		expect: `6`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "*",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  3,
-			},
-			Right: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 1.2,
-			},
-		},
-		expect: &ddl.Exp{
-			Type:  ddl.ExpFloat,
-			Float: 3.6,
-		},
+		exp:    `3*1.2`,
+		expect: `3.6`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "*",
-			Left: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 1.2,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  2,
-			},
-		},
-		expect: &ddl.Exp{
-			Type:  ddl.ExpFloat,
-			Float: 2.4,
-		},
+		exp:    `1.2*2`,
+		expect: `2.4`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "*",
-			Left: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 1.2,
-			},
-			Right: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.5,
-			},
-		},
-		expect: &ddl.Exp{
-			Type:  ddl.ExpFloat,
-			Float: 3,
-		},
+		exp:    `1.2*2.5`,
+		expect: `3.0`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "*",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  3,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpStr,
-				Str:  "hello",
-			},
-		},
+		exp: `3*"hello"`,
 		err: "calc.operandTypeMismatch",
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "*",
-			Left: &ddl.Exp{
-				Type: ddl.ExpBool,
-				Bool: true,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  1,
-			},
-		},
+		exp: `true*1`,
 		err: "calc.operandTypeMismatch",
 	},
 
 	// -----------------   /   ----------------------
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "/",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  4,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  -2,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpInt,
-			Int:  -2,
-		},
+		exp:    `4/2`,
+		expect: `2`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "/",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  5,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  2,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpInt,
-			Int:  2,
-		},
+		exp:    `5/2`,
+		expect: `2`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "/",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  3,
-			},
-			Right: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 1.2,
-			},
-		},
-		expect: &ddl.Exp{
-			Type:  ddl.ExpFloat,
-			Float: 2.5,
-		},
+		exp:    `3/1.2`,
+		expect: `2.5`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "/",
-			Left: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 1.2,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  2,
-			},
-		},
-		expect: &ddl.Exp{
-			Type:  ddl.ExpFloat,
-			Float: 0.6,
-		},
+		exp:    `1.2/2`,
+		expect: `0.6`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "/",
-			Left: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 1.2,
-			},
-			Right: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.5,
-			},
-		},
-		expect: &ddl.Exp{
-			Type:  ddl.ExpFloat,
-			Float: 0.48,
-		},
+		exp:    `1.2/2.5`,
+		expect: `0.48`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "/",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  3,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpStr,
-				Str:  "hello",
-			},
-		},
+		exp: `3/"hello"`,
 		err: "calc.operandTypeMismatch",
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "/",
-			Left: &ddl.Exp{
-				Type: ddl.ExpBool,
-				Bool: true,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  1,
-			},
-		},
+		exp: `true/1`,
 		err: "calc.operandTypeMismatch",
 	},
 
 	// -----------------   >   ----------------------
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: ">",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  4,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  3,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `4>3`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: ">",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  4,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  4,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: false,
-		},
+		exp:    `4>4`,
+		expect: `false`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: ">",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  4,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  5,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: false,
-		},
+		exp:    `4>5`,
+		expect: `false`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: ">",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  3,
-			},
-			Right: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.99999,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `3>2.99999`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: ">",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  3,
-			},
-			Right: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 3.0,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: false,
-		},
+		exp:    `3>3.0`,
+		expect: `false`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: ">",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  3,
-			},
-			Right: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 3.00000001,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: false,
-		},
+		exp:    `3>3.00000001`,
+		expect: `false`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: ">",
-			Left: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.00001,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  2,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `2.0000001>2`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: ">",
-			Left: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.00001,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  3,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: false,
-		},
+		exp:    `2.000001>3`,
+		expect: `false`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: ">",
-			Left: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.0,
-			},
-			Right: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.0,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: false,
-		},
+		exp:    `2.0>2.0`,
+		expect: `false`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: ">",
-			Left: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.000001,
-			},
-			Right: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.0,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `2.000001>2.0`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: ">",
-			Left: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.000001,
-			},
-			Right: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.000002,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: false,
-		},
+		exp:    `2.0000001>2.0000002`,
+		expect: `false`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: ">",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  3,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpStr,
-				Str:  "hello",
-			},
-		},
+		exp: `3>"hello"`,
 		err: "calc.operandTypeMismatch",
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: ">",
-			Left: &ddl.Exp{
-				Type: ddl.ExpBool,
-				Bool: true,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  1,
-			},
-		},
+		exp: `true>1`,
 		err: "calc.operandTypeMismatch",
 	},
 
 	// -----------------   >=   ----------------------
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: ">=",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  4,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  3,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `4>=3`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: ">=",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  4,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  4,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `4>=4`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: ">=",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  4,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  5,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: false,
-		},
+		exp:    `4>=5`,
+		expect: `false`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: ">=",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  3,
-			},
-			Right: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.99999,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `3>=2.999999`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: ">=",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  3,
-			},
-			Right: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 3.0,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `3>=3.0`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: ">=",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  3,
-			},
-			Right: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 3.00000001,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: false,
-		},
+		exp:    `3>=3.000000001`,
+		expect: `false`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: ">=",
-			Left: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.00001,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  2,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `2.00000001>=2`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: ">=",
-			Left: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.0,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  2,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `2.0>=2`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: ">=",
-			Left: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.00001,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  3,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: false,
-		},
+		exp:    `2.000001>=3`,
+		expect: `false`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: ">=",
-			Left: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.0,
-			},
-			Right: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.0,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `2.0>=2.0`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: ">=",
-			Left: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.000001,
-			},
-			Right: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.0,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `2.0000001>=2.0`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: ">=",
-			Left: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.000001,
-			},
-			Right: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.000002,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: false,
-		},
+		exp:    `2.00000001>=2.00000002`,
+		expect: `false`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: ">=",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  3,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpStr,
-				Str:  "hello",
-			},
-		},
+		exp: `3>="hello"`,
 		err: "calc.operandTypeMismatch",
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: ">=",
-			Left: &ddl.Exp{
-				Type: ddl.ExpBool,
-				Bool: true,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  1,
-			},
-		},
+		exp: `true>=1`,
 		err: "calc.operandTypeMismatch",
 	},
 
 	// -----------------   <   ----------------------
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "<",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  3,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  4,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `3<4`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "<",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  4,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  4,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: false,
-		},
+		exp:    `4<4`,
+		expect: `false`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "<",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  5,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  4,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: false,
-		},
+		exp:    `5<4`,
+		expect: `false`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "<",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  2,
-			},
-			Right: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.0000001,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `2<2.0000001`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "<",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  3,
-			},
-			Right: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 3.0,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: false,
-		},
+		exp:    `3<3.0`,
+		expect: `false`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "<",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  3,
-			},
-			Right: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 3.00000001,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `3<3.00000001`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "<",
-			Left: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 1.99999,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  2,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `1.9999999<2`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "<",
-			Left: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 3.000001,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  3,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: false,
-		},
+		exp:    `3.0000001<3`,
+		expect: `false`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "<",
-			Left: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.0,
-			},
-			Right: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.0,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: false,
-		},
+		exp:    `2.0<2.0`,
+		expect: `false`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "<",
-			Left: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.0,
-			},
-			Right: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.000001,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `2.0<2.0000001`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "<",
-			Left: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.000001,
-			},
-			Right: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.0,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: false,
-		},
+		exp:    `2.0000001<2.0`,
+		expect: `false`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "<",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  3,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpStr,
-				Str:  "hello",
-			},
-		},
+		exp: `3<"hello"`,
 		err: "calc.operandTypeMismatch",
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "<",
-			Left: &ddl.Exp{
-				Type: ddl.ExpBool,
-				Bool: true,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  1,
-			},
-		},
+		exp: `true<1`,
 		err: "calc.operandTypeMismatch",
 	},
 
 	// -----------------   <=   ----------------------
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "<=",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  3,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  4,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `3<=4`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "<=",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  4,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  4,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `4<=4`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "<=",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  5,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  4,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: false,
-		},
+		exp:    `5<=4`,
+		expect: `false`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "<=",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  3,
-			},
-			Right: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 3.00001,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `3<=3.0000001`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "<=",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  3,
-			},
-			Right: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 3.0,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `3<=3.0`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "<=",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  3,
-			},
-			Right: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.9999999,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: false,
-		},
+		exp:    `3<=2.9999999`,
+		expect: `false`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "<=",
-			Left: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 1.999999,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  2,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `1.99999999<=2`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "<=",
-			Left: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.0,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  2,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `2.0<=2`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "<=",
-			Left: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.00001,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  2,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: false,
-		},
+		exp:    `2.00000001<=2`,
+		expect: `false`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "<=",
-			Left: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.0,
-			},
-			Right: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.0,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `2.0<=2.0`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "<=",
-			Left: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 1.999999,
-			},
-			Right: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.0,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `1.99999999<=2.0`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "<=",
-			Left: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.000002,
-			},
-			Right: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.000001,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: false,
-		},
+		exp:    `2.0000002<=2.0000001`,
+		expect: `false`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "<=",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  3,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpStr,
-				Str:  "hello",
-			},
-		},
+		exp: `3<="hello"`,
 		err: "calc.operandTypeMismatch",
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: ">=",
-			Left: &ddl.Exp{
-				Type: ddl.ExpBool,
-				Bool: true,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  1,
-			},
-		},
+		exp: `true>=1`,
 		err: "calc.operandTypeMismatch",
 	},
 
 	// -----------------   ==   ----------------------
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "==",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  3,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  3,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `3==3`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "==",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  3,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  4,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: false,
-		},
+		exp:    `3==4`,
+		expect: `false`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "==",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  3,
-			},
-			Right: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 3.0,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `3==3.0`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "==",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  3,
-			},
-			Right: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 3.000001,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: false,
-		},
+		exp:    `3==3.0000001`,
+		expect: `false`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "==",
-			Left: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.0,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  2,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `2.0==2`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "==",
-			Left: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.000001,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  2,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: false,
-		},
+		exp:    `2.00000001==2`,
+		expect: `false`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "==",
-			Left: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.0,
-			},
-			Right: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.0,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `2.0==2.0`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "==",
-			Left: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 1.999999,
-			},
-			Right: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.0,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: false,
-		},
+		exp:    `1.9999999==2.0`,
+		expect: `false`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "==",
-			Left: &ddl.Exp{
-				Type: ddl.ExpNil,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpNil,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `nil==nil`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "==",
-			Left: &ddl.Exp{
-				Type: ddl.ExpBool,
-				Bool: false,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpBool,
-				Bool: false,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `false==false`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "==",
-			Left: &ddl.Exp{
-				Type: ddl.ExpBool,
-				Bool: true,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpBool,
-				Bool: true,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `true==true`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "==",
-			Left: &ddl.Exp{
-				Type: ddl.ExpBool,
-				Bool: false,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpBool,
-				Bool: true,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: false,
-		},
+		exp:    `false==true`,
+		expect: `false`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "==",
-			Left: &ddl.Exp{
-				Type: ddl.ExpStr,
-				Str:  "hello",
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpStr,
-				Str:  "hello",
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `"hello"=="hello"`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "==",
-			Left: &ddl.Exp{
-				Type: ddl.ExpStr,
-				Str:  "hello1",
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpStr,
-				Str:  "hello",
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: false,
-		},
+		exp:    `"hello1"=="hello"`,
+		expect: `false`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "==",
-			Left: &ddl.Exp{
-				Type:      ddl.ExpInterface,
-				Interface: &intvar1,
-			},
-			Right: &ddl.Exp{
-				Type:      ddl.ExpInterface,
-				Interface: &intvar1,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
-	},
-	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "==",
-			Left: &ddl.Exp{
-				Type:      ddl.ExpInterface,
-				Interface: &chickenStruct1,
-			},
-			Right: &ddl.Exp{
-				Type:      ddl.ExpInterface,
-				Interface: &chickenStruct1,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
-	},
-	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "==",
-			Left: &ddl.Exp{
-				Type:      ddl.ExpInterface,
-				Interface: &chickenStruct1,
-			},
-			Right: &ddl.Exp{
-				Type:      ddl.ExpInterface,
-				Interface: &chickenStruct2,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: false,
-		},
-	},
-	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "==",
-			Left: &ddl.Exp{
-				Type:      ddl.ExpInterface,
-				Interface: &intvar1,
-			},
-			Right: &ddl.Exp{
-				Type:      ddl.ExpInterface,
-				Interface: &floatvar1,
-			},
-		},
+		exp: `1=="hello"`,
 		err: "calc.operandTypeMismatch",
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "==",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  1,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpStr,
-				Str:  "hello",
-			},
-		},
+		exp: `1==true`,
 		err: "calc.operandTypeMismatch",
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "==",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  1,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpBool,
-				Bool: true,
-			},
-		},
-		err: "calc.operandTypeMismatch",
-	},
-	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "==",
-			Left: &ddl.Exp{
-				Type: ddl.ExpNil,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpBool,
-				Bool: true,
-			},
-		},
+		exp: `nil==false`,
 		err: "calc.operandTypeMismatch",
 	},
 
 	// -----------------   !=   ----------------------
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "!=",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  3,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  3,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: false,
-		},
+		exp:    `3!=3`,
+		expect: `false`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "!=",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  3,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  4,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `3!=4`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "!=",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  3,
-			},
-			Right: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 3.0,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: false,
-		},
+		exp:    `3!=3.0`,
+		expect: `false`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "!=",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  3,
-			},
-			Right: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 3.000001,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `3!=3.0000001`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "!=",
-			Left: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.0,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  2,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: false,
-		},
+		exp:    `2.0!=2`,
+		expect: `false`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "!=",
-			Left: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.000001,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  2,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `2.0000001!=2`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "!=",
-			Left: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.0,
-			},
-			Right: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.0,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: false,
-		},
+		exp:    `2.0!=2.0`,
+		expect: `false`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "!=",
-			Left: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 1.999999,
-			},
-			Right: &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: 2.0,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `1.999999!=2.0`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "!=",
-			Left: &ddl.Exp{
-				Type: ddl.ExpNil,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpNil,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: false,
-		},
+		exp:    `nil!=nil`,
+		expect: `false`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "!=",
-			Left: &ddl.Exp{
-				Type: ddl.ExpBool,
-				Bool: false,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpBool,
-				Bool: false,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: false,
-		},
+		exp:    `false!=false`,
+		expect: `false`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "!=",
-			Left: &ddl.Exp{
-				Type: ddl.ExpBool,
-				Bool: true,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpBool,
-				Bool: true,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: false,
-		},
+		exp:    `true!=true`,
+		expect: `false`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "!=",
-			Left: &ddl.Exp{
-				Type: ddl.ExpBool,
-				Bool: false,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpBool,
-				Bool: true,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `false!=true`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "!=",
-			Left: &ddl.Exp{
-				Type: ddl.ExpStr,
-				Str:  "hello",
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpStr,
-				Str:  "hello",
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: false,
-		},
+		exp:    `"hello"!="hello"`,
+		expect: `false`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "!=",
-			Left: &ddl.Exp{
-				Type: ddl.ExpStr,
-				Str:  "hello1",
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpStr,
-				Str:  "hello",
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `"hello1"!="hello"`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "!=",
-			Left: &ddl.Exp{
-				Type:      ddl.ExpInterface,
-				Interface: &intvar1,
-			},
-			Right: &ddl.Exp{
-				Type:      ddl.ExpInterface,
-				Interface: &intvar1,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: false,
-		},
-	},
-	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "!=",
-			Left: &ddl.Exp{
-				Type:      ddl.ExpInterface,
-				Interface: &chickenStruct1,
-			},
-			Right: &ddl.Exp{
-				Type:      ddl.ExpInterface,
-				Interface: &chickenStruct1,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: false,
-		},
-	},
-	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "!=",
-			Left: &ddl.Exp{
-				Type:      ddl.ExpInterface,
-				Interface: &chickenStruct1,
-			},
-			Right: &ddl.Exp{
-				Type:      ddl.ExpInterface,
-				Interface: &chickenStruct2,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
-	},
-	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "!=",
-			Left: &ddl.Exp{
-				Type:      ddl.ExpInterface,
-				Interface: &intvar1,
-			},
-			Right: &ddl.Exp{
-				Type:      ddl.ExpInterface,
-				Interface: &floatvar1,
-			},
-		},
+		exp: `1!="hello"`,
 		err: "calc.operandTypeMismatch",
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "!=",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  1,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpStr,
-				Str:  "hello",
-			},
-		},
+		exp: `1!=true`,
 		err: "calc.operandTypeMismatch",
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "!=",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  1,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpBool,
-				Bool: true,
-			},
-		},
-		err: "calc.operandTypeMismatch",
-	},
-	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "!=",
-			Left: &ddl.Exp{
-				Type: ddl.ExpNil,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpBool,
-				Bool: true,
-			},
-		},
+		exp: `nil!=true`,
 		err: "calc.operandTypeMismatch",
 	},
 
 	// -----------------   &&   ----------------------
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "&&",
-			Left: &ddl.Exp{
-				Type: ddl.ExpBool,
-				Bool: false,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpBool,
-				Bool: true,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: false,
-		},
+		exp:    `false && true`,
+		expect: `false`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "&&",
-			Left: &ddl.Exp{
-				Type: ddl.ExpBool,
-				Bool: true,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpBool,
-				Bool: false,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: false,
-		},
+		exp:    `true && false`,
+		expect: `false`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "&&",
-			Left: &ddl.Exp{
-				Type: ddl.ExpBool,
-				Bool: true,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpBool,
-				Bool: true,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `true && true`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "&&",
-			Left: &ddl.Exp{
-				Type: ddl.ExpBool,
-				Bool: false,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpBool,
-				Bool: false,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: false,
-		},
+		exp:    `false && false`,
+		expect: `false`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "&&",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  1,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  2,
-			},
-		},
+		exp: `1 && 2`,
 		err: "calc.operandTypeMismatch",
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "&&",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  1,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpStr,
-				Str:  "hello",
-			},
-		},
+		exp: `1 && "hello"`,
 		err: "calc.operandTypeMismatch",
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "&&",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  1,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpNil,
-			},
-		},
+		exp: `1 && nil`,
 		err: "calc.operandTypeMismatch",
 	},
 
 	// -----------------   ||   ----------------------
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "||",
-			Left: &ddl.Exp{
-				Type: ddl.ExpBool,
-				Bool: false,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpBool,
-				Bool: true,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `false || true`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "||",
-			Left: &ddl.Exp{
-				Type: ddl.ExpBool,
-				Bool: true,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpBool,
-				Bool: false,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `true || false`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "||",
-			Left: &ddl.Exp{
-				Type: ddl.ExpBool,
-				Bool: true,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpBool,
-				Bool: true,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: true,
-		},
+		exp:    `true || true`,
+		expect: `true`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "||",
-			Left: &ddl.Exp{
-				Type: ddl.ExpBool,
-				Bool: false,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpBool,
-				Bool: false,
-			},
-		},
-		expect: &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: false,
-		},
+		exp:    `false || false`,
+		expect: `false`,
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "||",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  1,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  2,
-			},
-		},
+		exp: `1 || 2`,
 		err: "calc.operandTypeMismatch",
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "||",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  1,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpStr,
-				Str:  "hello",
-			},
-		},
+		exp: `1 || "hello"`,
 		err: "calc.operandTypeMismatch",
 	},
 	{
-		exp: &ddl.Exp{
-			Type:     ddl.ExpCalc,
-			Operator: "||",
-			Left: &ddl.Exp{
-				Type: ddl.ExpInt,
-				Int:  1,
-			},
-			Right: &ddl.Exp{
-				Type: ddl.ExpNil,
-			},
-		},
+		exp: `1 || nil`,
 		err: "calc.operandTypeMismatch",
+	},
+
+	// -----------------   !   ----------------------
+	{
+		exp:    `!false`,
+		expect: `true`,
+	},
+	{
+		exp:    `!true`,
+		expect: `false`,
+	},
+	{
+		exp: `!1`,
+		err: "calc.operandTypeMismatch",
+	},
+	{
+		exp: `!"hello"`,
+		err: "calc.operandTypeMismatch",
+	},
+	{
+		exp: `!nil`,
+		err: "calc.operandTypeMismatch",
+	},
+
+	// -----------------------  ? : -------------------------
+	{
+		exp:    `true ? "hello" : "world"`,
+		expect: `"hello"`,
+	},
+	{
+		exp:    `false ? "hello" : "world"`,
+		expect: `"world"`,
+	},
+	{
+		exp:    `true ? 2 : 1`,
+		expect: `2`,
+	},
+	{
+		exp:    `false ? 2 : 1`,
+		expect: `1`,
+	},
+	{
+		exp: `false ? "hello" : 1`,
+		err: `calc.ternaryDataNotSameType`,
+	},
+	{
+		exp: `3 ? "hello" : "world"`,
+		err: `calc.invalidTernaryCondition`,
+	},
+	{
+		exp: `nil ? "hello" : "world"`,
+		err: `calc.invalidTernaryCondition`,
+	},
+	{
+		exp: `"abc" ? "hello" : "world"`,
+		err: `calc.invalidTernaryCondition`,
+	},
+
+	// --------------------- variable------------------------
+	{
+		exp:    `int8var2`,
+		expect: `2`,
+	},
+	{
+		exp:    `int16var2`,
+		expect: `2`,
+	},
+	{
+		exp:    `int32var2`,
+		expect: `2`,
+	},
+	{
+		exp:    `int64var2`,
+		expect: `2`,
+	},
+	{
+		exp:    `uint8var2`,
+		expect: `2`,
+	},
+	{
+		exp:    `uint16var2`,
+		expect: `2`,
+	},
+	{
+		exp:    `uint32var2`,
+		expect: `2`,
+	},
+	{
+		exp:    `uint64var2`,
+		expect: `2`,
+	},
+	{
+		exp:    `float32var3`,
+		expect: `3.0`,
+	},
+	{
+		exp:    `float64var3`,
+		expect: `3.0`,
+	},
+	{
+		exp:    `boolvarfalse`,
+		expect: `false`,
+	},
+	{
+		exp:    `boolvartrue`,
+		expect: `true`,
+	},
+	{
+		exp:    `nilvar`,
+		expect: `nil`,
+	},
+
+	// ----------------------- . ---------------------------
+	{
+		exp:    `chickenStruct.Name`,
+		expect: `"chicken"`,
+	},
+	{
+		exp:    `mapStrStr.hello`,
+		expect: `"hello"`,
+	},
+	{
+		exp:    `mapStrStr.world`,
+		expect: `"world"`,
+	},
+
+	// ----------------------- [] ---------------------------
+	{
+		exp:    `chickenStruct["Name"]`,
+		expect: `"chicken"`,
+	},
+	{
+		exp:    `chickenStruct[stringvarName]`,
+		expect: `"chicken"`,
+	},
+	{
+		exp:    `mapStrStr["world"]`,
+		expect: `"world"`,
+	},
+	{
+		exp:    `arrStr[0]`,
+		expect: `"hello"`,
+	},
+	{
+		exp:    `arrStr[1]`,
+		expect: `"world"`,
+	},
+
+	// -----------------  + - * / ( ) ----------------------
+	{
+		exp:    `3+2-1`,
+		expect: `4`,
+	},
+	{
+		exp:    `3+2*(5-1*3)/(1+1)`,
+		expect: `5`,
+	},
+	{
+		exp:    `3*5/3 + 2/2 - 3/3`,
+		expect: `5`,
+	},
+	{
+		exp:    `3*(5+2+1) - 6/(2+1)`,
+		expect: `22`,
+	},
+	{
+		exp:    `1 + 0.1 * 3 - 0.1 * 3 + 0.00001 > 1`,
+		expect: `true`,
+	},
+	{
+		exp:    `1 + 0.1 * 3 - 0.1 * 3 + 0.000001 >= 1`,
+		expect: `true`,
+	},
+	{
+		exp:    `1 + 0.00001 < 1 + 0.00001 * 2`,
+		expect: `true`,
+	},
+	{
+		exp:    `1 + 0.00001 <= 1 + 0.00001 * 2`,
+		expect: `true`,
+	},
+	{
+		exp:    `3*5/3 == 5`,
+		expect: `true`,
+	},
+	{
+		exp:    `3*(5+3) == 24`,
+		expect: `true`,
+	},
+	{
+		exp:    `3*5/3 != 5`,
+		expect: `false`,
+	},
+	{
+		exp:    `3*(5+3) != 24`,
+		expect: `false`,
+	},
+	{
+		exp:    `stringvarhello == "hello" && stringvarworld == "world" && int32var2 > 0 && 5 + 3*2 > 10`,
+		expect: `true`,
+	},
+	{
+		exp:    `stringvarhello == "hello" && stringvarworld == "world" && int32var2 > 0 && 5 + 3*2 > 10`,
+		expect: `true`,
 	},
 }
 
 func TestCalcExp(t *testing.T) {
-	varGetter := func(name string) (interface{}, error) {
-		return nil, nil
-	}
+	for _, testCase := range calcExpCases {
+		t.Log(testCase.exp)
 
-	t.Log(len(calcExpCases))
-	for idx, testCase := range calcExpCases {
-		t.Log(idx)
-		spew.Dump(testCase)
-		res, err := CalcExp(testCase.exp, varGetter)
-		if err == nil && !testCase.expect.Equal(res) {
-			t.Log("---------exp:")
-			spew.Dump(testCase.exp)
-			t.Log("---------expect:")
-			spew.Dump(testCase.expect)
-			t.Log("---------result:")
+		exp, err1 := ddl.ParseExp(testCase.exp)
+		if err1 != nil {
+			t.Fatal(err1)
+		}
+
+		res, err2 := CalcExp(exp, getVariable)
+		if err2 != nil {
+			if fmtErr, ok := err2.(*FmtError); ok {
+				if fmtErr.etype != testCase.err {
+					t.Log(err2)
+					t.Fatal("the error occured during the executing of this expression is not as expected. ")
+				}
+				continue
+			}
+		}
+
+		expect, err3 := ddl.ParseExp(testCase.expect)
+		if err3 != nil {
+			t.Fatal(err3)
+		}
+
+		if !expect.Equal(res) {
+			spew.Dump(expect)
 			spew.Dump(res)
 			t.Fatal("this expression is not calculated as expected")
-		} else if err != nil {
-			if fmtErr, ok := err.(*FmtError); ok {
-				if fmtErr.etype != testCase.err {
-					t.Log("---------exp:")
-					spew.Dump(testCase.exp)
-					t.Log("---------err:")
-					t.Log(testCase.err)
-					t.Log("---------real err:")
-					spew.Dump(fmtErr)
-					t.Fatal("this expression is not calculated as expected")
-				}
-			} else {
-				t.Log(err)
-				t.Fatal("this expression is not calculated as expected")
-			}
 		}
 	}
 }

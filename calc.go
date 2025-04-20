@@ -10,6 +10,12 @@ import (
 type VarGetter func(name string) (interface{}, error)
 
 func CalcExp(exp *ddl.Exp, varGetter VarGetter) (*ddl.Exp, error) {
+	if exp == nil {
+		return &ddl.Exp{
+			Type: ddl.ExpNil,
+		}, nil
+	}
+
 	if exp.Type == ddl.ExpCalc {
 		left, lerr := CalcExp(exp.Left, varGetter)
 		if lerr != nil {
@@ -66,7 +72,7 @@ func CalcExp(exp *ddl.Exp, varGetter VarGetter) (*ddl.Exp, error) {
 			if terr != nil {
 				return nil, terr
 			}
-			return calcTenaryCondition(condition, left, right)
+			return calcTernaryCondition(condition, left, right)
 
 		case ".":
 			return calcDot(left, right)
@@ -237,7 +243,7 @@ func calcLogicalOr(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
 }
 
 func calcLogicalNot(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
-	if left.Type == ddl.ExpNil && right.Type == ddl.ExpBool {
+	if (left == nil || left.Type == ddl.ExpNil) && right.Type == ddl.ExpBool {
 		return &ddl.Exp{
 			Type: ddl.ExpBool,
 			Bool: !right.Bool,
@@ -545,16 +551,20 @@ func calcLessOrEqual(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
 	return nil, NewError("calc.operandTypeMismatch", "<=", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
 }
 
-func calcTenaryCondition(condition *ddl.Exp, left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
-	if condition.Type == ddl.ExpBool {
-		if condition.Bool {
-			return left, nil
-		} else {
-			return right, nil
-		}
+func calcTernaryCondition(condition *ddl.Exp, left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
+	if condition == nil || condition.Type != ddl.ExpBool {
+		return nil, NewError("calc.invalidTernaryCondition", ddl.ExpTypeName[condition.Type])
 	}
 
-	return nil, NewError("calc.operandTypeMismatch", "?", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
+	if left.Type != right.Type {
+		return nil, NewError("calc.ternaryDataNotSameType")
+	}
+
+	if condition.Bool {
+		return left, nil
+	} else {
+		return right, nil
+	}
 }
 
 func calcVar(exp *ddl.Exp, varGetter VarGetter) (*ddl.Exp, error) {
@@ -569,6 +579,12 @@ func calcVar(exp *ddl.Exp, varGetter VarGetter) (*ddl.Exp, error) {
 	val, err := varGetter(exp.Variable)
 	if err != nil {
 		return nil, err
+	}
+
+	if val == nil {
+		return &ddl.Exp{
+			Type: ddl.ExpNil,
+		}, nil
 	}
 
 	if reflect.ValueOf(val).Kind() == reflect.Pointer {
@@ -663,6 +679,12 @@ func calcVar(exp *ddl.Exp, varGetter VarGetter) (*ddl.Exp, error) {
 }
 
 func ConvertVariableToExp(variable interface{}) (*ddl.Exp, error) {
+	if variable == nil {
+		return &ddl.Exp{
+			Type: ddl.ExpNil,
+		}, nil
+	}
+
 	switch v := variable.(type) {
 	case int8:
 		return &ddl.Exp{
@@ -751,7 +773,7 @@ func ConvertVariableToExp(variable interface{}) (*ddl.Exp, error) {
 }
 
 func calcDot(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
-	if left.Type == ddl.ExpInterface {
+	if left.Type == ddl.ExpInterface && right.Type == ddl.ExpStr {
 		leftVal := reflect.ValueOf(left.Interface)
 
 		if leftVal.Kind() == reflect.Struct && right.Type == ddl.ExpStr {
@@ -770,31 +792,31 @@ func calcDot(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
 				mapKeyKind == reflect.Uint64 || mapKeyKind == reflect.Int8 || mapKeyKind == reflect.Int16 ||
 				mapKeyKind == reflect.Int32 || mapKeyKind == reflect.Int64) && right.Type == ddl.ExpInt {
 				key := reflect.ValueOf(right.Int).Convert(mapKeyType)
-				res := leftVal.MapIndex(key)
+				res := leftVal.MapIndex(key).Interface()
 				return ConvertVariableToExp(res)
 			}
 
 			if (mapKeyKind == reflect.Float32 || mapKeyKind == reflect.Float64) && right.Type == ddl.ExpFloat {
 				key := reflect.ValueOf(right.Float).Convert(mapKeyType)
-				res := leftVal.MapIndex(key)
+				res := leftVal.MapIndex(key).Interface()
 				return ConvertVariableToExp(res)
 			}
 
 			if mapKeyKind == reflect.String && right.Type == ddl.ExpStr {
 				key := reflect.ValueOf(right.Str)
-				res := leftVal.MapIndex(key)
+				res := leftVal.MapIndex(key).Interface()
 				return ConvertVariableToExp(res)
 			}
 
 			if mapKeyKind == reflect.Bool && right.Type == ddl.ExpBool {
 				key := reflect.ValueOf(right.Bool)
-				res := leftVal.MapIndex(key)
+				res := leftVal.MapIndex(key).Interface()
 				return ConvertVariableToExp(res)
 			}
 
 			if right.Type == ddl.ExpInterface && reflect.ValueOf(right.Interface).CanConvert(mapKeyType) {
 				key := reflect.ValueOf(right.Interface).Convert(mapKeyType)
-				res := leftVal.MapIndex(key)
+				res := leftVal.MapIndex(key).Interface()
 				return ConvertVariableToExp(res)
 			}
 		}
@@ -839,31 +861,31 @@ func calcSquareBracket(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
 				mapKeyKind == reflect.Uint64 || mapKeyKind == reflect.Int8 || mapKeyKind == reflect.Int16 ||
 				mapKeyKind == reflect.Int32 || mapKeyKind == reflect.Int64) && right.Type == ddl.ExpInt {
 				key := reflect.ValueOf(right.Int).Convert(mapKeyType)
-				res := leftVal.MapIndex(key)
+				res := leftVal.MapIndex(key).Interface()
 				return ConvertVariableToExp(res)
 			}
 
 			if (mapKeyKind == reflect.Float32 || mapKeyKind == reflect.Float64) && right.Type == ddl.ExpFloat {
 				key := reflect.ValueOf(right.Float).Convert(mapKeyType)
-				res := leftVal.MapIndex(key)
+				res := leftVal.MapIndex(key).Interface()
 				return ConvertVariableToExp(res)
 			}
 
 			if mapKeyKind == reflect.String && right.Type == ddl.ExpStr {
 				key := reflect.ValueOf(right.Str)
-				res := leftVal.MapIndex(key)
+				res := leftVal.MapIndex(key).Interface()
 				return ConvertVariableToExp(res)
 			}
 
 			if mapKeyKind == reflect.Bool && right.Type == ddl.ExpBool {
 				key := reflect.ValueOf(right.Bool)
-				res := leftVal.MapIndex(key)
+				res := leftVal.MapIndex(key).Interface()
 				return ConvertVariableToExp(res)
 			}
 
 			if right.Type == ddl.ExpInterface && reflect.ValueOf(right.Interface).CanConvert(mapKeyType) {
 				key := reflect.ValueOf(right.Interface).Convert(mapKeyType)
-				res := leftVal.MapIndex(key)
+				res := leftVal.MapIndex(key).Interface()
 				return ConvertVariableToExp(res)
 			}
 		}
@@ -871,7 +893,7 @@ func calcSquareBracket(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
 		if leftVal.Kind() == reflect.Array || leftVal.Kind() == reflect.Slice {
 			if right.Type == ddl.ExpInt {
 				idx := right.Int
-				res := leftVal.Index(int(idx))
+				res := leftVal.Index(int(idx)).Interface()
 				return ConvertVariableToExp(res)
 			}
 		}

@@ -13,7 +13,10 @@ func IsStructFieldExported(field string) bool {
 }
 
 func SetStructField(structVar interface{}, field string, val interface{}) error {
-	comp := reflect.ValueOf(structVar).Elem()
+	comp := reflect.ValueOf(structVar)
+	if comp.Kind() == reflect.Pointer {
+		comp = comp.Elem()
+	}
 	fieldVal := comp.FieldByName(field)
 
 	if !fieldVal.IsValid() {
@@ -53,7 +56,10 @@ func SetStructField(structVar interface{}, field string, val interface{}) error 
 }
 
 func GetStructField(structVar interface{}, field string) (interface{}, error) {
-	comp := reflect.ValueOf(structVar).Elem()
+	comp := reflect.ValueOf(structVar)
+	if comp.Kind() == reflect.Pointer {
+		comp = comp.Elem()
+	}
 	fieldVal := comp.FieldByName(field)
 
 	if !fieldVal.IsValid() {
