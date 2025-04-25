@@ -41,6 +41,7 @@ var variableMap = map[string]interface{}{
 		"world": "world",
 	},
 	"arrStr": []string{"hello", "world"},
+	"arrInt": []int{10, 11, 12, 13},
 }
 
 func getVariable(name string) (interface{}, error) {
@@ -750,6 +751,10 @@ var calcExpCases = []CalcExpCase{
 		exp:    `arrStr[1]`,
 		expect: `"world"`,
 	},
+	{
+		exp:    `arrInt[1]`,
+		expect: "11",
+	},
 
 	// -----------------  + - * / ( ) ----------------------
 	{
@@ -801,11 +806,19 @@ var calcExpCases = []CalcExpCase{
 		expect: `false`,
 	},
 	{
+		exp:    `arrInt[0] + arrInt[1]`,
+		expect: `21`,
+	},
+	{
 		exp:    `stringvarhello == "hello" && stringvarworld == "world" && int32var2 > 0 && 5 + 3*2 > 10`,
 		expect: `true`,
 	},
 	{
 		exp:    `stringvarhello == "hello" && stringvarworld == "world" && int32var2 > 0 && 5 + 3*2 > 10`,
+		expect: `true`,
+	},
+	{
+		exp:    `arrInt[1] == 11 && arrStr[0] == "hello" && 3 > 2 && int32var2 > 0 && 9 + 8 * 7 > 8 + 8 * 7`,
 		expect: `true`,
 	},
 }

@@ -686,6 +686,12 @@ func ConvertVariableToExp(variable interface{}) (*ddl.Exp, error) {
 	}
 
 	switch v := variable.(type) {
+	case int:
+		return &ddl.Exp{
+			Type: ddl.ExpInt,
+			Int:  int64(v),
+		}, nil
+
 	case int8:
 		return &ddl.Exp{
 			Type: ddl.ExpInt,
@@ -817,14 +823,6 @@ func calcDot(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
 			if right.Type == ddl.ExpInterface && reflect.ValueOf(right.Interface).CanConvert(mapKeyType) {
 				key := reflect.ValueOf(right.Interface).Convert(mapKeyType)
 				res := leftVal.MapIndex(key).Interface()
-				return ConvertVariableToExp(res)
-			}
-		}
-
-		if leftVal.Kind() == reflect.Array || leftVal.Kind() == reflect.Slice {
-			if right.Type == ddl.ExpInt {
-				idx := right.Int
-				res := leftVal.Index(int(idx))
 				return ConvertVariableToExp(res)
 			}
 		}
