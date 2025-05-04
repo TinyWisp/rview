@@ -22,6 +22,30 @@ type parseCssTestCase struct {
 var (
 	tokenizeCssTestCases = []tokenizeCssTestCase{
 		{
+			str: "auto",
+			tokens: []CSSToken{
+				{
+					Type: CSSTokenAuto,
+				},
+			},
+		},
+		{
+			str: "scroll",
+			tokens: []CSSToken{
+				{
+					Type: CSSTokenScroll,
+				},
+			},
+		},
+		{
+			str: "hidden",
+			tokens: []CSSToken{
+				{
+					Type: CSSTokenHidden,
+				},
+			},
+		},
+		{
 			str: "+",
 			tokens: []CSSToken{
 				{
@@ -117,7 +141,7 @@ var (
 				{
 					Type: CSSTokenNum,
 					Num:  10,
-					Unit: noUnit,
+					Unit: NoUnit,
 				},
 			},
 		},
@@ -127,7 +151,7 @@ var (
 				{
 					Type: CSSTokenNum,
 					Num:  5,
-					Unit: ch,
+					Unit: CH,
 				},
 			},
 		},
@@ -137,7 +161,7 @@ var (
 				{
 					Type: CSSTokenNum,
 					Num:  5,
-					Unit: ch,
+					Unit: CH,
 				},
 			},
 		},
@@ -147,7 +171,7 @@ var (
 				{
 					Type: CSSTokenNum,
 					Num:  5,
-					Unit: vw,
+					Unit: VW,
 				},
 			},
 		},
@@ -157,7 +181,7 @@ var (
 				{
 					Type: CSSTokenNum,
 					Num:  5,
-					Unit: vh,
+					Unit: VH,
 				},
 			},
 		},
@@ -167,7 +191,7 @@ var (
 				{
 					Type: CSSTokenNum,
 					Num:  5,
-					Unit: pfw,
+					Unit: PFW,
 				},
 			},
 		},
@@ -177,7 +201,7 @@ var (
 				{
 					Type: CSSTokenNum,
 					Num:  5,
-					Unit: pfh,
+					Unit: PFH,
 				},
 			},
 		},
@@ -187,7 +211,7 @@ var (
 				{
 					Type: CSSTokenNum,
 					Num:  5,
-					Unit: pcw,
+					Unit: PCW,
 				},
 			},
 		},
@@ -197,7 +221,7 @@ var (
 				{
 					Type: CSSTokenNum,
 					Num:  5,
-					Unit: pch,
+					Unit: PCH,
 				},
 			},
 		},
@@ -257,7 +281,7 @@ var (
 							{
 								Type: CSSTokenNum,
 								Num:  70,
-								Unit: vw,
+								Unit: VW,
 							},
 							{
 								Type:     CSSTokenOperator,
@@ -266,7 +290,7 @@ var (
 							{
 								Type: CSSTokenNum,
 								Num:  30,
-								Unit: ch,
+								Unit: CH,
 							},
 						},
 					},
@@ -279,7 +303,7 @@ var (
 				{
 					Type: CSSTokenNum,
 					Num:  10,
-					Unit: ch,
+					Unit: CH,
 				},
 				{
 					Type:  CSSTokenColor,
@@ -309,7 +333,54 @@ var (
 				{
 					Type: CSSTokenNum,
 					Num:  10,
-					Unit: ch,
+					Unit: CH,
+				},
+				{
+					Type:  CSSTokenOperator,
+					Color: ";",
+				},
+				{
+					Type:  CSSTokenOperator,
+					Color: "}",
+				},
+			},
+		},
+		{
+			str: ".class1 {\noverflow: hidden;\noverflow-x: auto;\n}",
+			tokens: []CSSToken{
+				{
+					Type:  CSSTokenClass,
+					Class: "class1",
+				},
+				{
+					Type:     CSSTokenOperator,
+					Operator: "{",
+				},
+				{
+					Type: CSSTokenProp,
+					Prop: "overflow",
+				},
+				{
+					Type:     CSSTokenOperator,
+					Operator: ":",
+				},
+				{
+					Type: CSSTokenHidden,
+				},
+				{
+					Type:  CSSTokenOperator,
+					Color: ";",
+				},
+				{
+					Type: CSSTokenProp,
+					Prop: "overflow-x",
+				},
+				{
+					Type:     CSSTokenOperator,
+					Operator: ":",
+				},
+				{
+					Type: CSSTokenAuto,
 				},
 				{
 					Type:  CSSTokenOperator,
@@ -343,7 +414,7 @@ var (
 				{
 					Type: CSSTokenNum,
 					Num:  10,
-					Unit: ch,
+					Unit: CH,
 				},
 				{
 					Type:  CSSTokenOperator,
@@ -360,7 +431,7 @@ var (
 				{
 					Type: CSSTokenNum,
 					Num:  11,
-					Unit: ch,
+					Unit: CH,
 				},
 				{
 					Type:  CSSTokenOperator,
@@ -398,12 +469,12 @@ var (
 				{
 					Type: CSSTokenNum,
 					Num:  10,
-					Unit: ch,
+					Unit: CH,
 				},
 				{
 					Type: CSSTokenNum,
 					Num:  0,
-					Unit: noUnit,
+					Unit: NoUnit,
 				},
 				{
 					Type:  CSSTokenColor,
@@ -489,35 +560,35 @@ var (
 						{
 							Type: CSSTokenNum,
 							Num:  1,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"margin-left": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  1,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"margin-right": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  1,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"margin-top": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  1,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"margin-bottom": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  1,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 				},
@@ -531,40 +602,40 @@ var (
 						{
 							Type: CSSTokenNum,
 							Num:  1,
-							Unit: ch,
+							Unit: CH,
 						},
 						{
 							Type: CSSTokenNum,
 							Num:  2,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"margin-left": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  2,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"margin-right": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  2,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"margin-top": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  1,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"margin-bottom": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  1,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 				},
@@ -578,50 +649,50 @@ var (
 						{
 							Type: CSSTokenNum,
 							Num:  1,
-							Unit: ch,
+							Unit: CH,
 						},
 						{
 							Type: CSSTokenNum,
 							Num:  2,
-							Unit: ch,
+							Unit: CH,
 						},
 						{
 							Type: CSSTokenNum,
 							Num:  3,
-							Unit: ch,
+							Unit: CH,
 						},
 						{
 							Type: CSSTokenNum,
 							Num:  4,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"margin-left": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  4,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"margin-right": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  2,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"margin-top": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  1,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"margin-bottom": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  3,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 				},
@@ -635,50 +706,50 @@ var (
 						{
 							Type: CSSTokenNum,
 							Num:  1,
-							Unit: ch,
+							Unit: CH,
 						},
 						{
 							Type: CSSTokenNum,
 							Num:  2,
-							Unit: ch,
+							Unit: CH,
 						},
 						{
 							Type: CSSTokenNum,
 							Num:  3,
-							Unit: ch,
+							Unit: CH,
 						},
 						{
 							Type: CSSTokenNum,
 							Num:  4,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"margin-left": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  5,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"margin-right": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  6,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"margin-top": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  7,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"margin-bottom": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  8,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 				},
@@ -693,35 +764,35 @@ var (
 						{
 							Type: CSSTokenNum,
 							Num:  1,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"padding-left": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  1,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"padding-right": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  1,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"padding-top": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  1,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"padding-bottom": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  1,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 				},
@@ -735,40 +806,40 @@ var (
 						{
 							Type: CSSTokenNum,
 							Num:  1,
-							Unit: ch,
+							Unit: CH,
 						},
 						{
 							Type: CSSTokenNum,
 							Num:  2,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"padding-left": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  2,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"padding-right": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  2,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"padding-top": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  1,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"padding-bottom": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  1,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 				},
@@ -782,50 +853,50 @@ var (
 						{
 							Type: CSSTokenNum,
 							Num:  1,
-							Unit: ch,
+							Unit: CH,
 						},
 						{
 							Type: CSSTokenNum,
 							Num:  2,
-							Unit: ch,
+							Unit: CH,
 						},
 						{
 							Type: CSSTokenNum,
 							Num:  3,
-							Unit: ch,
+							Unit: CH,
 						},
 						{
 							Type: CSSTokenNum,
 							Num:  4,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"padding-left": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  4,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"padding-right": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  2,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"padding-top": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  1,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"padding-bottom": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  3,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 				},
@@ -839,50 +910,50 @@ var (
 						{
 							Type: CSSTokenNum,
 							Num:  1,
-							Unit: ch,
+							Unit: CH,
 						},
 						{
 							Type: CSSTokenNum,
 							Num:  2,
-							Unit: ch,
+							Unit: CH,
 						},
 						{
 							Type: CSSTokenNum,
 							Num:  3,
-							Unit: ch,
+							Unit: CH,
 						},
 						{
 							Type: CSSTokenNum,
 							Num:  4,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"padding-left": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  5,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"padding-right": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  6,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"padding-top": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  7,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"padding-bottom": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  8,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 				},
@@ -898,35 +969,35 @@ var (
 						{
 							Type: CSSTokenNum,
 							Num:  1,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"border-left-width": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  1,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"border-right-width": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  1,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"border-top-width": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  1,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"border-bottom-width": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  1,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 				},
@@ -940,40 +1011,40 @@ var (
 						{
 							Type: CSSTokenNum,
 							Num:  1,
-							Unit: ch,
+							Unit: CH,
 						},
 						{
 							Type: CSSTokenNum,
 							Num:  2,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"border-left-width": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  2,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"border-right-width": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  2,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"border-top-width": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  1,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"border-bottom-width": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  1,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 				},
@@ -987,50 +1058,50 @@ var (
 						{
 							Type: CSSTokenNum,
 							Num:  1,
-							Unit: ch,
+							Unit: CH,
 						},
 						{
 							Type: CSSTokenNum,
 							Num:  2,
-							Unit: ch,
+							Unit: CH,
 						},
 						{
 							Type: CSSTokenNum,
 							Num:  3,
-							Unit: ch,
+							Unit: CH,
 						},
 						{
 							Type: CSSTokenNum,
 							Num:  4,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"border-left-width": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  4,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"border-right-width": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  2,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"border-top-width": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  1,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"border-bottom-width": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  3,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 				},
@@ -1044,50 +1115,50 @@ var (
 						{
 							Type: CSSTokenNum,
 							Num:  1,
-							Unit: ch,
+							Unit: CH,
 						},
 						{
 							Type: CSSTokenNum,
 							Num:  2,
-							Unit: ch,
+							Unit: CH,
 						},
 						{
 							Type: CSSTokenNum,
 							Num:  3,
-							Unit: ch,
+							Unit: CH,
 						},
 						{
 							Type: CSSTokenNum,
 							Num:  4,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"border-left-width": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  5,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"border-right-width": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  6,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"border-top-width": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  7,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 					"border-bottom-width": []CSSToken{
 						{
 							Type: CSSTokenNum,
 							Num:  8,
-							Unit: ch,
+							Unit: CH,
 						},
 					},
 				},
@@ -1319,6 +1390,56 @@ var (
 				},
 			},
 		},
+		// --------------------- overflow -----------------------
+		{
+			str: ".class1 {\noverflow: auto;\n}",
+			classMap: CSSClassMap{
+				"class1": CSSClass{
+					"overflow": []CSSToken{
+						{
+							Type: CSSTokenAuto,
+						},
+					},
+					"overflow-x": []CSSToken{
+						{
+							Type: CSSTokenAuto,
+						},
+					},
+					"overflow-y": []CSSToken{
+						{
+							Type: CSSTokenAuto,
+						},
+					},
+				},
+			},
+		},
+		{
+			str: ".class1 {\noverflow: auto;\noverflow-x: hidden;\n overflow-y: scroll;\n}",
+			classMap: CSSClassMap{
+				"class1": CSSClass{
+					"overflow": []CSSToken{
+						{
+							Type: CSSTokenAuto,
+						},
+					},
+					"overflow-x": []CSSToken{
+						{
+							Type: CSSTokenHidden,
+						},
+					},
+					"overflow-y": []CSSToken{
+						{
+							Type: CSSTokenScroll,
+						},
+					},
+				},
+			},
+		},
+		{
+			str: ".class1 {overflow: abc;}",
+			err: "css.invalidPropVal",
+		},
+
 		// ----------------- multiple classes -------------------
 		{
 			str: ".class1 {\nbackground-color: #ff0000;\n}\n.class2 {\nbackground-color: #00ff00;\n}",

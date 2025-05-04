@@ -143,7 +143,7 @@ var (
 							{
 								Type: CSSTokenNum,
 								Num:  10,
-								Unit: ch,
+								Unit: CH,
 							},
 						},
 					},

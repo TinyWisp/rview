@@ -17,30 +17,35 @@ const (
 	CSSTokenVar
 	CSSTokenClass
 	CSSTokenProp
+
+	CSSTokenAuto
+	CSSTokenHidden
+	CSSTokenVisible
+	CSSTokenScroll
 )
 
 type CSSUnit int
 
 const (
-	noUnit CSSUnit = iota
-	ch             // 1 character
-	vw             // relative to 1% of the width of the viewport
-	vh             // relative to 1% of the height of the viewport
-	pfw            // relative to 1% of the full width of the parent
-	pfh            // relative to 1% of the full height of the parent
-	pcw            // relative to 1% of the width of the parent's content
-	pch            // relative to 1% of the height of the parent's content
+	NoUnit CSSUnit = iota
+	CH             // 1 character
+	VW             // relative to 1% of the width of the viewport
+	VH             // relative to 1% of the height of the viewport
+	PFW            // relative to 1% of the full width of the parent
+	PFH            // relative to 1% of the full height of the parent
+	PCW            // relative to 1% of the width of the parent's content
+	PCH            // relative to 1% of the height of the parent's content
 )
 
 var cssUnitMap = map[string]CSSUnit{
-	"ch":  ch,
-	"vw":  vw,
-	"vh":  vh,
-	"pfw": pfw,
-	"pfh": pfh,
-	"pcw": pcw,
-	"pch": pch,
-	"":    noUnit,
+	"ch":  CH,
+	"vw":  VW,
+	"vh":  VH,
+	"pfw": PFW,
+	"pfh": PFH,
+	"pcw": PCW,
+	"pch": PCH,
+	"":    NoUnit,
 }
 
 type CSSToken struct {
@@ -75,6 +80,7 @@ var (
 		class      *regexp.Regexp
 		prop       *regexp.Regexp
 		whitespace *regexp.Regexp
+		keyword    *regexp.Regexp
 	}{
 		num:        regexp.MustCompile("^([0-9]+[.]?[0-9]*)(ch|vw|vh|pfw|pfh|pcw|pch)?"),
 		color:      regexp.MustCompile("^#[0-9a-fA-F]{6}"),
@@ -85,6 +91,7 @@ var (
 		class:      regexp.MustCompile(`^\.([0-9a-zA-Z_\-]+)`),
 		variable:   regexp.MustCompile(`^var\(.*?\)`),
 		whitespace: regexp.MustCompile(`^\s+`),
+		keyword:    regexp.MustCompile(`^(auto|scroll|hidden)`),
 	}
 
 	propRuleMap = map[string][][]CSSTokenType{
@@ -110,6 +117,15 @@ var (
 		"border-bottom-color": {{CSSTokenColor}},
 		"border-char":         {{CSSTokenStr, CSSTokenStr, CSSTokenStr, CSSTokenStr, CSSTokenStr, CSSTokenStr}},
 		"background-color":    {{CSSTokenColor}},
+		"overflow":            {{CSSTokenAuto}, {CSSTokenHidden}, {CSSTokenScroll}},
+		"overflow-x":          {{CSSTokenAuto}, {CSSTokenHidden}, {CSSTokenScroll}},
+		"overflow-y":          {{CSSTokenAuto}, {CSSTokenHidden}, {CSSTokenScroll}},
+	}
+
+	keywordMap = map[string]CSSTokenType{
+		"auto":   CSSTokenAuto,
+		"scroll": CSSTokenScroll,
+		"hidden": CSSTokenHidden,
 	}
 )
 
@@ -224,9 +240,10 @@ func checkCssPropRule(classMap CSSClassMap) error {
 				}
 				if valid {
 					break
-				} else {
-					return NewDdlParseError("", "css.invalidPropVal", pval[0].Pos)
 				}
+			}
+			if !valid {
+				return NewDdlParseError("", "css.invalidPropVal", pval[0].Pos)
 			}
 		}
 	}
@@ -235,6 +252,7 @@ func checkCssPropRule(classMap CSSClassMap) error {
 }
 
 func coverCssProp(classMap CSSClassMap) {
+	// ----- margin, padding, border-width, border-color -------
 	var tprops = []string{"margin", "padding", "border-width", "border-color"}
 	var pattern = regexp.MustCompile("^([a-z]+)")
 
@@ -276,6 +294,18 @@ func coverCssProp(classMap CSSClassMap) {
 				if _, ok := cpropMap[tbottomProp]; !ok {
 					cpropMap[tbottomProp] = []CSSToken{bottom}
 				}
+			}
+		}
+	}
+
+	// --------------------- ovreflow ---------------------------
+	for _, cpropMap := range classMap {
+		if overflow, ok := cpropMap["overflow"]; ok {
+			if _, ok2 := cpropMap["overflow-x"]; !ok2 {
+				cpropMap["overflow-x"] = overflow
+			}
+			if _, ok2 := cpropMap["overflow-y"]; !ok2 {
+				cpropMap["overflow-y"] = overflow
 			}
 		}
 	}
@@ -436,6 +466,14 @@ func tokenizeCss(css string) ([]CSSToken, error) {
 				Pos:      pos,
 			})
 			pos += len(operator)
+
+			// keyword: auto, scroll, hidden
+		} else if matches := cssPattern.keyword.FindStringSubmatch(left); len(matches) > 0 {
+			word := matches[0]
+			tokens = append(tokens, CSSToken{
+				Type: keywordMap[word],
+			})
+			pos += len(word)
 
 			// str
 		} else if matches := cssPattern.str.FindStringSubmatch(left); len(matches) > 0 {
