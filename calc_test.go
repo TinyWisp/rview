@@ -756,7 +756,7 @@ var calcExpCases = []CalcExpCase{
 		expect: "11",
 	},
 
-	// -----------------  + - * / ( ) ----------------------
+	// --------  + - * / ( ) > >= < <= == != && ! || . [] ------------
 	{
 		exp:    `3+2-1`,
 		expect: `4`,
@@ -808,6 +808,14 @@ var calcExpCases = []CalcExpCase{
 	{
 		exp:    `arrInt[0] + arrInt[1]`,
 		expect: `21`,
+	},
+	{
+		exp:    `!(3 + 5 > 2)`,
+		expect: `false`,
+	},
+	{
+		exp:    `!(3 + 5 == 2)`,
+		expect: `true`,
 	},
 	{
 		exp:    `stringvarhello == "hello" && stringvarworld == "world" && int32var2 > 0 && 5 + 3*2 > 10`,

@@ -262,6 +262,30 @@ var (
 			},
 		},
 		{
+			str: "animal.duck.fly()",
+			exp: Exp{
+				Type:     ExpCalc,
+				Operator: ".",
+				Left: &Exp{
+					Type:     ExpCalc,
+					Operator: ".",
+					Left: &Exp{
+						Type:     ExpVar,
+						Variable: "animal",
+					},
+					Right: &Exp{
+						Type: ExpStr,
+						Str:  "duck",
+					},
+				},
+				Right: &Exp{
+					Type:       ExpFunc,
+					FuncName:   "fly",
+					FuncParams: []*Exp{},
+				},
+			},
+		},
+		{
 			str: "-1",
 			exp: Exp{
 				Type:     ExpCalc,

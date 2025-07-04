@@ -48,6 +48,8 @@ var msgMap = map[string]string{
 	"comp.cannotResolveComponent":   "failed to resolve component: %s",
 	"comp.SetCompProp.propNotExist": "invalid property: %s",
 	"comp.SetCompProp.typeMismatch": "cannot assign %s to %s",
+
+	"canvas.NotANumberToekn": "not a number token",
 }
 
 func T(msg string) string {

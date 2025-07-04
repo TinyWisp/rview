@@ -58,6 +58,7 @@ type CSSToken struct {
 	FuncName  string
 	Class     string
 	Color     string
+	IntColor  int32
 	Prop      string
 	Arguments [][]CSSToken
 	Pos       int
@@ -115,7 +116,7 @@ var (
 		"border-right-color":  {{CSSTokenColor}},
 		"border-top-color":    {{CSSTokenColor}},
 		"border-bottom-color": {{CSSTokenColor}},
-		"border-char":         {{CSSTokenStr, CSSTokenStr, CSSTokenStr, CSSTokenStr, CSSTokenStr, CSSTokenStr}},
+		"border-char":         {{CSSTokenStr, CSSTokenStr, CSSTokenStr, CSSTokenStr, CSSTokenStr, CSSTokenStr, CSSTokenStr, CSSTokenStr}},
 		"background-color":    {{CSSTokenColor}},
 		"overflow":            {{CSSTokenAuto}, {CSSTokenHidden}, {CSSTokenScroll}},
 		"overflow-x":          {{CSSTokenAuto}, {CSSTokenHidden}, {CSSTokenScroll}},
@@ -363,10 +364,13 @@ func tokenizeCss(css string) ([]CSSToken, error) {
 			// color
 		} else if matches := cssPattern.color.FindStringSubmatch(left); len(matches) > 0 {
 			color := matches[0]
+			hexColor := strings.TrimPrefix(color, "#")
+			intColor, _ := strconv.ParseInt(hexColor, 16, 32)
 			tokens = append(tokens, CSSToken{
-				Type:  CSSTokenColor,
-				Color: color,
-				Pos:   pos,
+				Type:     CSSTokenColor,
+				Color:    color,
+				IntColor: int32(intColor),
+				Pos:      pos,
 			})
 			pos += len(color)
 

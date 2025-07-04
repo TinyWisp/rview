@@ -229,8 +229,9 @@ var (
 			str: "#ababab",
 			tokens: []CSSToken{
 				{
-					Type:  CSSTokenColor,
-					Color: "#ababab",
+					Type:     CSSTokenColor,
+					Color:    "#ababab",
+					IntColor: 0xababab,
 				},
 			},
 		},
@@ -306,8 +307,9 @@ var (
 					Unit: CH,
 				},
 				{
-					Type:  CSSTokenColor,
-					Color: "#ffffff",
+					Type:     CSSTokenColor,
+					Color:    "#ffffff",
+					IntColor: 0xffffff,
 				},
 			},
 		},
@@ -336,12 +338,12 @@ var (
 					Unit: CH,
 				},
 				{
-					Type:  CSSTokenOperator,
-					Color: ";",
+					Type:     CSSTokenOperator,
+					Operator: ";",
 				},
 				{
-					Type:  CSSTokenOperator,
-					Color: "}",
+					Type:     CSSTokenOperator,
+					Operator: "}",
 				},
 			},
 		},
@@ -368,8 +370,8 @@ var (
 					Type: CSSTokenHidden,
 				},
 				{
-					Type:  CSSTokenOperator,
-					Color: ";",
+					Type:     CSSTokenOperator,
+					Operator: ";",
 				},
 				{
 					Type: CSSTokenProp,
@@ -383,12 +385,12 @@ var (
 					Type: CSSTokenAuto,
 				},
 				{
-					Type:  CSSTokenOperator,
-					Color: ";",
+					Type:     CSSTokenOperator,
+					Operator: ";",
 				},
 				{
-					Type:  CSSTokenOperator,
-					Color: "}",
+					Type:     CSSTokenOperator,
+					Operator: "}",
 				},
 			},
 		},
@@ -417,8 +419,8 @@ var (
 					Unit: CH,
 				},
 				{
-					Type:  CSSTokenOperator,
-					Color: ";",
+					Type:     CSSTokenOperator,
+					Operator: ";",
 				},
 				{
 					Type: CSSTokenProp,
@@ -434,12 +436,12 @@ var (
 					Unit: CH,
 				},
 				{
-					Type:  CSSTokenOperator,
-					Color: ";",
+					Type:     CSSTokenOperator,
+					Operator: ";",
 				},
 				{
-					Type:  CSSTokenOperator,
-					Color: "}",
+					Type:     CSSTokenOperator,
+					Operator: "}",
 				},
 			},
 		},
@@ -477,16 +479,17 @@ var (
 					Unit: NoUnit,
 				},
 				{
-					Type:  CSSTokenColor,
-					Color: "#ffffff",
+					Type:     CSSTokenColor,
+					Color:    "#ffffff",
+					IntColor: 0xffffff,
 				},
 				{
-					Type:  CSSTokenOperator,
-					Color: ";",
+					Type:     CSSTokenOperator,
+					Operator: ";",
 				},
 				{
-					Type:  CSSTokenOperator,
-					Color: "}",
+					Type:     CSSTokenOperator,
+					Operator: "}",
 				},
 			},
 		},
@@ -1172,32 +1175,37 @@ var (
 				"class1": {
 					"border-color": []CSSToken{
 						{
-							Type:  CSSTokenColor,
-							Color: "#ffffff",
+							Type:     CSSTokenColor,
+							Color:    "#ffffff",
+							IntColor: 0xffffff,
 						},
 					},
 					"border-left-color": []CSSToken{
 						{
-							Type:  CSSTokenColor,
-							Color: "#ffffff",
+							Type:     CSSTokenColor,
+							Color:    "#ffffff",
+							IntColor: 0xffffff,
 						},
 					},
 					"border-right-color": []CSSToken{
 						{
-							Type:  CSSTokenColor,
-							Color: "#ffffff",
+							Type:     CSSTokenColor,
+							Color:    "#ffffff",
+							IntColor: 0xffffff,
 						},
 					},
 					"border-top-color": []CSSToken{
 						{
-							Type:  CSSTokenColor,
-							Color: "#ffffff",
+							Type:     CSSTokenColor,
+							Color:    "#ffffff",
+							IntColor: 0xffffff,
 						},
 					},
 					"border-bottom-color": []CSSToken{
 						{
-							Type:  CSSTokenColor,
-							Color: "#ffffff",
+							Type:     CSSTokenColor,
+							Color:    "#ffffff",
+							IntColor: 0xffffff,
 						},
 					},
 				},
@@ -1209,36 +1217,42 @@ var (
 				"class1": {
 					"border-color": []CSSToken{
 						{
-							Type:  CSSTokenColor,
-							Color: "#ab0000",
+							Type:     CSSTokenColor,
+							Color:    "#ab0000",
+							IntColor: 0xab0000,
 						},
 						{
-							Type:  CSSTokenColor,
-							Color: "#00ab00",
+							Type:     CSSTokenColor,
+							Color:    "#00ab00",
+							IntColor: 0x00ab00,
 						},
 					},
 					"border-left-color": []CSSToken{
 						{
-							Type:  CSSTokenColor,
-							Color: "#00ab00",
+							Type:     CSSTokenColor,
+							Color:    "#00ab00",
+							IntColor: 0x00ab00,
 						},
 					},
 					"border-right-color": []CSSToken{
 						{
-							Type:  CSSTokenColor,
-							Color: "#00ab00",
+							Type:     CSSTokenColor,
+							Color:    "#00ab00",
+							IntColor: 0x00ab00,
 						},
 					},
 					"border-top-color": []CSSToken{
 						{
-							Type:  CSSTokenColor,
-							Color: "#ab0000",
+							Type:     CSSTokenColor,
+							Color:    "#ab0000",
+							IntColor: 0xab0000,
 						},
 					},
 					"border-bottom-color": []CSSToken{
 						{
-							Type:  CSSTokenColor,
-							Color: "#ab0000",
+							Type:     CSSTokenColor,
+							Color:    "#ab0000",
+							IntColor: 0xab0000,
 						},
 					},
 				},
@@ -1250,44 +1264,52 @@ var (
 				"class1": {
 					"border-color": []CSSToken{
 						{
-							Type:  CSSTokenColor,
-							Color: "#aaaaaa",
+							Type:     CSSTokenColor,
+							Color:    "#aaaaaa",
+							IntColor: 0xaaaaaa,
 						},
 						{
-							Type:  CSSTokenColor,
-							Color: "#bbbbbb",
+							Type:     CSSTokenColor,
+							Color:    "#bbbbbb",
+							IntColor: 0xbbbbbb,
 						},
 						{
-							Type:  CSSTokenColor,
-							Color: "#cccccc",
+							Type:     CSSTokenColor,
+							Color:    "#cccccc",
+							IntColor: 0xcccccc,
 						},
 						{
-							Type:  CSSTokenColor,
-							Color: "#dddddd",
+							Type:     CSSTokenColor,
+							Color:    "#dddddd",
+							IntColor: 0xdddddd,
 						},
 					},
 					"border-left-color": []CSSToken{
 						{
-							Type:  CSSTokenColor,
-							Color: "#dddddd",
+							Type:     CSSTokenColor,
+							Color:    "#dddddd",
+							IntColor: 0xdddddd,
 						},
 					},
 					"border-right-color": []CSSToken{
 						{
-							Type:  CSSTokenColor,
-							Color: "#bbbbbb",
+							Type:     CSSTokenColor,
+							Color:    "#bbbbbb",
+							IntColor: 0xbbbbbb,
 						},
 					},
 					"border-top-color": []CSSToken{
 						{
-							Type:  CSSTokenColor,
-							Color: "#aaaaaa",
+							Type:     CSSTokenColor,
+							Color:    "#aaaaaa",
+							IntColor: 0xaaaaaa,
 						},
 					},
 					"border-bottom-color": []CSSToken{
 						{
-							Type:  CSSTokenColor,
-							Color: "#cccccc",
+							Type:     CSSTokenColor,
+							Color:    "#cccccc",
+							IntColor: 0xcccccc,
 						},
 					},
 				},
@@ -1299,44 +1321,52 @@ var (
 				"class1": {
 					"border-color": []CSSToken{
 						{
-							Type:  CSSTokenColor,
-							Color: "#aaaaaa",
+							Type:     CSSTokenColor,
+							Color:    "#aaaaaa",
+							IntColor: 0xaaaaaa,
 						},
 						{
-							Type:  CSSTokenColor,
-							Color: "#bbbbbb",
+							Type:     CSSTokenColor,
+							Color:    "#bbbbbb",
+							IntColor: 0xbbbbbb,
 						},
 						{
-							Type:  CSSTokenColor,
-							Color: "#cccccc",
+							Type:     CSSTokenColor,
+							Color:    "#cccccc",
+							IntColor: 0xcccccc,
 						},
 						{
-							Type:  CSSTokenColor,
-							Color: "#dddddd",
+							Type:     CSSTokenColor,
+							Color:    "#dddddd",
+							IntColor: 0xdddddd,
 						},
 					},
 					"border-left-color": []CSSToken{
 						{
-							Type:  CSSTokenColor,
-							Color: "#aa0000",
+							Type:     CSSTokenColor,
+							Color:    "#aa0000",
+							IntColor: 0xaa0000,
 						},
 					},
 					"border-right-color": []CSSToken{
 						{
-							Type:  CSSTokenColor,
-							Color: "#bb0000",
+							Type:     CSSTokenColor,
+							Color:    "#bb0000",
+							IntColor: 0xbb0000,
 						},
 					},
 					"border-top-color": []CSSToken{
 						{
-							Type:  CSSTokenColor,
-							Color: "#cc0000",
+							Type:     CSSTokenColor,
+							Color:    "#cc0000",
+							IntColor: 0xcc0000,
 						},
 					},
 					"border-bottom-color": []CSSToken{
 						{
-							Type:  CSSTokenColor,
-							Color: "#dd0000",
+							Type:     CSSTokenColor,
+							Color:    "#dd0000",
+							IntColor: 0xdd0000,
 						},
 					},
 				},
@@ -1344,7 +1374,7 @@ var (
 		},
 		// ----------------- bordr-char -------------------
 		{
-			str: ".class1 {\nborder-char: ╔ ╗ ╝ ╚ ═ ║;\n}",
+			str: ".class1 {\nborder-char: ╔ ═ ╗ ║ ╝ ═ ╚ ║;\n}",
 			classMap: CSSClassMap{
 				"class1": CSSClass{
 					"border-char": []CSSToken{
@@ -1354,7 +1384,15 @@ var (
 						},
 						{
 							Type: CSSTokenStr,
+							Str:  "═",
+						},
+						{
+							Type: CSSTokenStr,
 							Str:  "╗",
+						},
+						{
+							Type: CSSTokenStr,
+							Str:  "║",
 						},
 						{
 							Type: CSSTokenStr,
@@ -1362,11 +1400,11 @@ var (
 						},
 						{
 							Type: CSSTokenStr,
-							Str:  "╚",
+							Str:  "═",
 						},
 						{
 							Type: CSSTokenStr,
-							Str:  "═",
+							Str:  "╚",
 						},
 						{
 							Type: CSSTokenStr,
@@ -1383,8 +1421,9 @@ var (
 				"class1": CSSClass{
 					"background-color": []CSSToken{
 						{
-							Type:  CSSTokenColor,
-							Color: "#ffffff",
+							Type:     CSSTokenColor,
+							Color:    "#ff0000",
+							IntColor: 0xff0000,
 						},
 					},
 				},
@@ -1447,16 +1486,18 @@ var (
 				"class1": CSSClass{
 					"background-color": []CSSToken{
 						{
-							Type:  CSSTokenColor,
-							Color: "#ff0000",
+							Type:     CSSTokenColor,
+							Color:    "#ff0000",
+							IntColor: 0xff0000,
 						},
 					},
 				},
 				"class2": CSSClass{
 					"background-color": []CSSToken{
 						{
-							Type:  CSSTokenColor,
-							Color: "#00ff00",
+							Type:     CSSTokenColor,
+							Color:    "#00ff00",
+							IntColor: 0x00ff00,
 						},
 					},
 				},
@@ -1478,6 +1519,21 @@ func isCssTokenEqual(a CSSToken, b CSSToken) bool {
 
 	case CSSTokenStr:
 		if a.Str != b.Str {
+			return false
+		}
+
+	case CSSTokenColor:
+		if a.Color != b.Color || a.IntColor != b.IntColor {
+			return false
+		}
+
+	case CSSTokenOperator:
+		if a.Operator != b.Operator {
+			return false
+		}
+
+	case CSSTokenVar:
+		if a.Variable != b.Variable {
 			return false
 		}
 
