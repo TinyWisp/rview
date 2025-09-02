@@ -7,37 +7,39 @@ import (
 	"github.com/TinyWisp/rview/i18n"
 )
 
-type DdlParseError struct {
-	pos int
-	ddl string
-	err string
+type DdlError struct {
+	pos   int
+	ddl   string
+	etype string
+	vars  []any
 }
 
-func NewDdlParseError(ddl string, err string, pos int) *DdlParseError {
-	return &DdlParseError{
-		ddl: ddl,
-		err: err,
-		pos: pos,
+func NewDdlError(ddl string, pos int, etype string, vars ...any) *DdlError {
+	return &DdlError{
+		ddl:   ddl,
+		etype: etype,
+		pos:   pos,
+		vars:  vars,
 	}
 }
 
-func (dpe *DdlParseError) Error() string {
+func (de *DdlError) Error() string {
 	msg := ""
 
-	msg = i18n.T(dpe.err) + "\n"
+	msg = fmt.Sprintf(i18n.T(de.etype), de.vars...) + "\n"
 
-	if dpe.pos == -1 {
-		dpe.pos = len(dpe.ddl) - 1
+	if de.pos < 0 || de.ddl == "" {
+		return msg
 	}
 
-	lines := strings.Split(dpe.ddl, "\n")
+	lines := strings.Split(de.ddl, "\n")
 	lastLineEndPos := 0
 	errRow := 0
-	errCol := dpe.pos
+	errCol := de.pos
 	for idx := 0; idx < len(lines); idx++ {
-		if lastLineEndPos+len(lines[idx]) >= dpe.pos {
+		if lastLineEndPos+len(lines[idx]) >= de.pos {
 			errRow = idx
-			errCol = dpe.pos - lastLineEndPos
+			errCol = de.pos - lastLineEndPos
 			break
 		}
 		lastLineEndPos += len(lines[idx]) + 1
@@ -64,22 +66,22 @@ func (dpe *DdlParseError) Error() string {
 	return msg
 }
 
-func (dpe *DdlParseError) AddOffset(offset int) {
-	dpe.pos += offset
+func (de *DdlError) AddOffset(offset int) {
+	de.pos += offset
 }
 
-func (dpe *DdlParseError) SetDdl(ddl string) {
-	dpe.ddl = ddl
+func (de *DdlError) SetDdl(ddl string) {
+	de.ddl = ddl
 }
 
-func (dpe *DdlParseError) SetPos(pos int) {
-	dpe.pos = pos
+func (de *DdlError) SetPos(pos int) {
+	de.pos = pos
 }
 
-func (dpe *DdlParseError) IsExpError() bool {
-	return strings.HasPrefix(dpe.err, "exp")
+func (de *DdlError) IsExpError() bool {
+	return strings.HasPrefix(de.etype, "exp")
 }
 
-func (dpe *DdlParseError) IsCssError() bool {
-	return strings.HasPrefix(dpe.err, "css")
+func (de *DdlError) IsCssError() bool {
+	return strings.HasPrefix(de.etype, "css")
 }

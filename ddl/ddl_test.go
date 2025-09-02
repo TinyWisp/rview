@@ -59,17 +59,19 @@ var (
 					"link-item": {
 						Type:    TplNodeTag,
 						TagName: "template",
-						Def: &Exp{
-							Type:     ExpFunc,
-							FuncName: "link-item",
-							FuncParams: []*Exp{
-								{
-									Type:     ExpVar,
-									Variable: "param1",
-								},
-								{
-									Type:     ExpVar,
-									Variable: "param2",
+						Def: &TplAttr{
+							Exp: &Exp{
+								Type:     ExpFunc,
+								FuncName: "link-item",
+								FuncParams: []*Exp{
+									{
+										Type:     ExpVar,
+										Variable: "param1",
+									},
+									{
+										Type:     ExpVar,
+										Variable: "param2",
+									},
 								},
 							},
 						},
@@ -114,21 +116,22 @@ var (
 					"link-item": {
 						Type:    TplNodeTag,
 						TagName: "template",
-						Def: &Exp{
-							Type:     ExpFunc,
-							FuncName: "link-item",
-							FuncParams: []*Exp{
-								{
-									Type:     ExpVar,
-									Variable: "param1",
-								},
-								{
-									Type:     ExpVar,
-									Variable: "param2",
+						Def: &TplAttr{
+							Exp: &Exp{
+								Type:     ExpFunc,
+								FuncName: "link-item",
+								FuncParams: []*Exp{
+									{
+										Type:     ExpVar,
+										Variable: "param1",
+									},
+									{
+										Type:     ExpVar,
+										Variable: "param2",
+									},
 								},
 							},
 						},
-
 						Children: []*TplNode{
 							{
 								Type:    TplNodeTag,
@@ -188,8 +191,8 @@ func TestParseDdl(t *testing.T) {
 		fmt.Printf("ddl: %s\n", str)
 		realDef, err = ParseDdl(str)
 		if err != nil {
-			if dpe, ok := err.(*DdlParseError); ok {
-				if testCase.err != "" && dpe.err == testCase.err {
+			if dpe, ok := err.(*DdlError); ok {
+				if testCase.err != "" && dpe.etype == testCase.err {
 					continue
 				}
 			}

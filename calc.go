@@ -16,6 +16,14 @@ func CalcExp(exp *ddl.Exp, varGetter VarGetter) (*ddl.Exp, error) {
 		}, nil
 	}
 
+	if exp.Type == ddl.ExpVar {
+		return calcVar(exp, varGetter)
+	}
+
+	if exp.Type == ddl.ExpFunc {
+		return calcFunc(exp, varGetter)
+	}
+
 	if exp.Type == ddl.ExpCalc {
 		left, lerr := CalcExp(exp.Left, varGetter)
 		if lerr != nil {
@@ -81,12 +89,8 @@ func CalcExp(exp *ddl.Exp, varGetter VarGetter) (*ddl.Exp, error) {
 			return calcSquareBracket(left, right)
 
 		default:
-			return nil, NewError("calc.unsupportedOperator", exp.Operator)
+			return nil, NewTypedError("calc.unsupportedOperator", exp.Operator)
 		}
-	}
-
-	if exp.Type == ddl.ExpVar {
-		return calcVar(exp, varGetter)
 	}
 
 	return exp, nil
@@ -121,7 +125,7 @@ func calcPlus(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
 		}, nil
 	}
 
-	return nil, NewError("calc.operandTypeMismatch", "+", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
+	return nil, NewTypedError("calc.operandTypeMismatch", "+", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
 }
 
 func calcMinus(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
@@ -153,7 +157,7 @@ func calcMinus(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
 		}, nil
 	}
 
-	return nil, NewError("calc.operandTypeMismatch", "-", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
+	return nil, NewTypedError("calc.operandTypeMismatch", "-", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
 }
 
 func calcTimes(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
@@ -185,7 +189,7 @@ func calcTimes(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
 		}, nil
 	}
 
-	return nil, NewError("calc.operandTypeMismatch", "*", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
+	return nil, NewTypedError("calc.operandTypeMismatch", "*", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
 }
 
 func calcDivision(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
@@ -217,7 +221,7 @@ func calcDivision(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
 		}, nil
 	}
 
-	return nil, NewError("calc.operandTypeMismatch", "/", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
+	return nil, NewTypedError("calc.operandTypeMismatch", "/", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
 }
 
 func calcLogicalAnd(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
@@ -228,7 +232,7 @@ func calcLogicalAnd(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
 		}, nil
 	}
 
-	return nil, NewError("calc.operandTypeMismatch", "&&", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
+	return nil, NewTypedError("calc.operandTypeMismatch", "&&", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
 }
 
 func calcLogicalOr(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
@@ -239,7 +243,7 @@ func calcLogicalOr(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
 		}, nil
 	}
 
-	return nil, NewError("calc.operandTypeMismatch", "||", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
+	return nil, NewTypedError("calc.operandTypeMismatch", "||", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
 }
 
 func calcLogicalNot(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
@@ -250,7 +254,7 @@ func calcLogicalNot(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
 		}, nil
 	}
 
-	return nil, NewError("calc.operandTypeMismatch", "!", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
+	return nil, NewTypedError("calc.operandTypeMismatch", "!", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
 }
 
 func calcEqual(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
@@ -318,10 +322,10 @@ func calcEqual(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
 				Bool: reflect.ValueOf(left.Interface).Pointer() == reflect.ValueOf(right.Interface).Pointer(),
 			}, nil
 		}
-		return nil, NewError("calc.operandTypeMismatch", "==", reflect.TypeOf(left.Interface).String(), reflect.TypeOf(right.Interface).String())
+		return nil, NewTypedError("calc.operandTypeMismatch", "==", reflect.TypeOf(left.Interface).String(), reflect.TypeOf(right.Interface).String())
 	}
 
-	return nil, NewError("calc.operandTypeMismatch", "==", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
+	return nil, NewTypedError("calc.operandTypeMismatch", "==", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
 }
 
 func calcNotEqual(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
@@ -389,10 +393,10 @@ func calcNotEqual(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
 				Bool: reflect.ValueOf(left.Interface).Pointer() != reflect.ValueOf(right.Interface).Pointer(),
 			}, nil
 		}
-		return nil, NewError("calc.operandTypeMismatch", "!=", reflect.TypeOf(left.Interface).String(), reflect.TypeOf(right.Interface).String())
+		return nil, NewTypedError("calc.operandTypeMismatch", "!=", reflect.TypeOf(left.Interface).String(), reflect.TypeOf(right.Interface).String())
 	}
 
-	return nil, NewError("calc.operandTypeMismatch", "!=", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
+	return nil, NewTypedError("calc.operandTypeMismatch", "!=", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
 }
 
 func calcGreater(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
@@ -431,7 +435,7 @@ func calcGreater(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
 		}, nil
 	}
 
-	return nil, NewError("calc.operandTypeMismatch", ">", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
+	return nil, NewTypedError("calc.operandTypeMismatch", ">", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
 }
 
 func calcGreaterOrEqual(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
@@ -470,7 +474,7 @@ func calcGreaterOrEqual(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
 		}, nil
 	}
 
-	return nil, NewError("calc.operandTypeMismatch", ">", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
+	return nil, NewTypedError("calc.operandTypeMismatch", ">", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
 }
 
 func calcLess(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
@@ -509,7 +513,7 @@ func calcLess(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
 		}, nil
 	}
 
-	return nil, NewError("calc.operandTypeMismatch", "<", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
+	return nil, NewTypedError("calc.operandTypeMismatch", "<", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
 }
 
 func calcLessOrEqual(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
@@ -548,16 +552,16 @@ func calcLessOrEqual(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
 		}, nil
 	}
 
-	return nil, NewError("calc.operandTypeMismatch", "<=", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
+	return nil, NewTypedError("calc.operandTypeMismatch", "<=", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
 }
 
 func calcTernaryCondition(condition *ddl.Exp, left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
 	if condition == nil || condition.Type != ddl.ExpBool {
-		return nil, NewError("calc.invalidTernaryCondition", ddl.ExpTypeName[condition.Type])
+		return nil, NewTypedError("calc.invalidTernaryCondition", ddl.ExpTypeName[condition.Type])
 	}
 
 	if left.Type != right.Type {
-		return nil, NewError("calc.ternaryDataNotSameType")
+		return nil, NewTypedError("calc.ternaryDataNotSameType")
 	}
 
 	if condition.Bool {
@@ -569,11 +573,11 @@ func calcTernaryCondition(condition *ddl.Exp, left *ddl.Exp, right *ddl.Exp) (*d
 
 func calcVar(exp *ddl.Exp, varGetter VarGetter) (*ddl.Exp, error) {
 	if exp.Type != ddl.ExpVar {
-		return nil, NewError("calc.mustBeVarType")
+		return nil, NewTypedError("calc.expMustBeVarType", `calcVar.exp`)
 	}
 
 	if exp.Variable == "" {
-		return nil, NewError("calc.emptyVariableName")
+		return nil, NewTypedError("calc.emptyVariableName")
 	}
 
 	val, err := varGetter(exp.Variable)
@@ -591,91 +595,207 @@ func calcVar(exp *ddl.Exp, varGetter VarGetter) (*ddl.Exp, error) {
 		val = reflect.ValueOf(val).Elem().Interface()
 	}
 
-	switch v := val.(type) {
-	case int8:
-		return &ddl.Exp{
-			Type: ddl.ExpInt,
-			Int:  int64(v),
-		}, nil
+	return ConvertVariableToExp(val)
+}
 
-	case int16:
-		return &ddl.Exp{
-			Type: ddl.ExpInt,
-			Int:  int64(v),
-		}, nil
+func calcFunc(exp *ddl.Exp, varGetter VarGetter) (*ddl.Exp, error) {
+	if exp.Type != ddl.ExpFunc {
+		return nil, NewTypedError("calc.expMustBeFuncType", `calcFunc.exp`)
+	}
 
-	case int32:
-		return &ddl.Exp{
-			Type: ddl.ExpInt,
-			Int:  int64(v),
-		}, nil
+	if exp.FuncName == "" {
+		return nil, NewTypedError("calc.emptyFuncName")
+	}
 
-	case int64:
-		return &ddl.Exp{
-			Type: ddl.ExpInt,
-			Int:  v,
-		}, nil
+	funcVar, err := varGetter(exp.FuncName)
+	if err != nil {
+		return nil, err
+	}
 
-	case uint8:
-		return &ddl.Exp{
-			Type: ddl.ExpInt,
-			Int:  int64(v),
-		}, nil
+	if reflect.TypeOf(funcVar).Kind() != reflect.Func {
+		return nil, NewTypedError("calc.varIsNotFunc", exp.FuncName)
+	}
+	theFunc := reflect.ValueOf(funcVar)
+	theFuncType := reflect.TypeOf(funcVar)
 
-	case uint16:
-		return &ddl.Exp{
-			Type: ddl.ExpInt,
-			Int:  int64(v),
-		}, nil
+	if !theFuncType.IsVariadic() && len(exp.FuncParams) != theFuncType.NumIn() {
+		return nil, NewTypedError("calc.argumentNumberMismatch", exp.FuncName, theFuncType.NumIn(), len(exp.FuncParams))
+	}
 
-	case uint32:
-		return &ddl.Exp{
-			Type: ddl.ExpInt,
-			Int:  int64(v),
-		}, nil
+	if theFuncType.IsVariadic() && len(exp.FuncParams) != theFuncType.NumIn() {
+		return nil, NewTypedError("calc.argumentNumberNotEnough", exp.FuncName, theFuncType.NumIn()-1, len(exp.FuncParams))
+	}
 
-	case uint64:
-		if v > math.MaxInt64 {
-			return &ddl.Exp{
-				Type:  ddl.ExpFloat,
-				Float: float64(v),
-			}, nil
+	theParams := []reflect.Value{}
+	for idx, paramExp := range exp.FuncParams {
+		res, rerr := CalcExp(paramExp, varGetter)
+		if rerr != nil {
+			return nil, rerr
 		}
-		return &ddl.Exp{
-			Type: ddl.ExpInt,
-			Int:  int64(v),
-		}, nil
 
-	case float32:
-		return &ddl.Exp{
-			Type:  ddl.ExpFloat,
-			Float: float64(v),
-		}, nil
+		param := reflect.Value{}
+		switch res.Type {
+		case ddl.ExpBool:
+			param = reflect.ValueOf(res.Bool)
 
-	case float64:
-		return &ddl.Exp{
-			Type:  ddl.ExpFloat,
-			Float: float64(v),
-		}, nil
+		case ddl.ExpStr:
+			param = reflect.ValueOf(res.Str)
 
-	case string:
-		return &ddl.Exp{
-			Type: ddl.ExpStr,
-			Str:  v,
-		}, nil
+		case ddl.ExpInt:
+			param = reflect.ValueOf(res.Int).Convert(theFuncType.In(idx))
 
-	case bool:
-		return &ddl.Exp{
-			Type: ddl.ExpBool,
-			Bool: v,
-		}, nil
+		case ddl.ExpFloat:
+			param = reflect.ValueOf(res.Float).Convert(theFuncType.In(idx))
 
-	default:
+		case ddl.ExpNil:
+			param = reflect.ValueOf(nil)
+
+		case ddl.ExpInterface:
+			param = reflect.ValueOf(exp.Interface)
+		}
+		theParams = append(theParams, param)
+	}
+
+	res := theFunc.Call(theParams)
+	if len(res) == 0 {
 		return &ddl.Exp{
-			Type:      ddl.ExpInterface,
-			Interface: v,
+			Type: ddl.ExpNil,
 		}, nil
 	}
+
+	val := res[0].Interface()
+
+	return ConvertVariableToExp(val)
+}
+
+func calcDot(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
+	if left.Type == ddl.ExpInterface && right.Type == ddl.ExpStr {
+		leftVal := reflect.ValueOf(left.Interface)
+
+		if leftVal.Kind() == reflect.Struct && right.Type == ddl.ExpStr {
+			res, err := GetStructField(left.Interface, right.Str)
+			if err != nil {
+				return nil, err
+			}
+			return ConvertVariableToExp(res)
+		}
+
+		if leftVal.Kind() == reflect.Map {
+			mapKeyType := reflect.TypeOf(left.Interface).Key()
+			mapKeyKind := mapKeyType.Kind()
+
+			if (mapKeyKind == reflect.Uint8 || mapKeyKind == reflect.Uint16 || mapKeyKind == reflect.Uint32 ||
+				mapKeyKind == reflect.Uint64 || mapKeyKind == reflect.Int8 || mapKeyKind == reflect.Int16 ||
+				mapKeyKind == reflect.Int32 || mapKeyKind == reflect.Int64) && right.Type == ddl.ExpInt {
+				key := reflect.ValueOf(right.Int).Convert(mapKeyType)
+				res := leftVal.MapIndex(key).Interface()
+				return ConvertVariableToExp(res)
+			}
+
+			if (mapKeyKind == reflect.Float32 || mapKeyKind == reflect.Float64) && right.Type == ddl.ExpFloat {
+				key := reflect.ValueOf(right.Float).Convert(mapKeyType)
+				res := leftVal.MapIndex(key).Interface()
+				return ConvertVariableToExp(res)
+			}
+
+			if mapKeyKind == reflect.String && right.Type == ddl.ExpStr {
+				key := reflect.ValueOf(right.Str)
+				res := leftVal.MapIndex(key).Interface()
+				return ConvertVariableToExp(res)
+			}
+
+			if mapKeyKind == reflect.Bool && right.Type == ddl.ExpBool {
+				key := reflect.ValueOf(right.Bool)
+				res := leftVal.MapIndex(key).Interface()
+				return ConvertVariableToExp(res)
+			}
+
+			if right.Type == ddl.ExpInterface && reflect.ValueOf(right.Interface).CanConvert(mapKeyType) {
+				key := reflect.ValueOf(right.Interface).Convert(mapKeyType)
+				res := leftVal.MapIndex(key).Interface()
+				return ConvertVariableToExp(res)
+			}
+		}
+
+		if right.Type != ddl.ExpInterface {
+			return nil, NewTypedError("calc.operandTypeMismatch", ".", leftVal.Type().String(), ddl.ExpTypeName[right.Type])
+		}
+		return nil, NewTypedError("calc.operandTypeMismatch", ".", leftVal.Type().String(), reflect.TypeOf(right.Interface).String())
+	}
+
+	if right.Type != ddl.ExpInterface {
+		return nil, NewTypedError("calc.operandTypeMismatch", ".", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
+	}
+	return nil, NewTypedError("calc.operandTypeMismatch", ".", ddl.ExpTypeName[left.Type], reflect.TypeOf(right.Interface).Name())
+}
+
+func calcSquareBracket(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
+	if left.Type == ddl.ExpInterface {
+		leftVal := reflect.ValueOf(left.Interface)
+
+		if leftVal.Kind() == reflect.Struct && right.Type == ddl.ExpStr {
+			res, err := GetStructField(left.Interface, right.Str)
+			if err != nil {
+				return nil, err
+			}
+			return ConvertVariableToExp(res)
+		}
+
+		if leftVal.Kind() == reflect.Map {
+			mapKeyType := reflect.TypeOf(left.Interface).Key()
+			mapKeyKind := mapKeyType.Kind()
+
+			if (mapKeyKind == reflect.Uint8 || mapKeyKind == reflect.Uint16 || mapKeyKind == reflect.Uint32 ||
+				mapKeyKind == reflect.Uint64 || mapKeyKind == reflect.Int8 || mapKeyKind == reflect.Int16 ||
+				mapKeyKind == reflect.Int32 || mapKeyKind == reflect.Int64) && right.Type == ddl.ExpInt {
+				key := reflect.ValueOf(right.Int).Convert(mapKeyType)
+				res := leftVal.MapIndex(key).Interface()
+				return ConvertVariableToExp(res)
+			}
+
+			if (mapKeyKind == reflect.Float32 || mapKeyKind == reflect.Float64) && right.Type == ddl.ExpFloat {
+				key := reflect.ValueOf(right.Float).Convert(mapKeyType)
+				res := leftVal.MapIndex(key).Interface()
+				return ConvertVariableToExp(res)
+			}
+
+			if mapKeyKind == reflect.String && right.Type == ddl.ExpStr {
+				key := reflect.ValueOf(right.Str)
+				res := leftVal.MapIndex(key).Interface()
+				return ConvertVariableToExp(res)
+			}
+
+			if mapKeyKind == reflect.Bool && right.Type == ddl.ExpBool {
+				key := reflect.ValueOf(right.Bool)
+				res := leftVal.MapIndex(key).Interface()
+				return ConvertVariableToExp(res)
+			}
+
+			if right.Type == ddl.ExpInterface && reflect.ValueOf(right.Interface).CanConvert(mapKeyType) {
+				key := reflect.ValueOf(right.Interface).Convert(mapKeyType)
+				res := leftVal.MapIndex(key).Interface()
+				return ConvertVariableToExp(res)
+			}
+		}
+
+		if leftVal.Kind() == reflect.Array || leftVal.Kind() == reflect.Slice {
+			if right.Type == ddl.ExpInt {
+				idx := right.Int
+				res := leftVal.Index(int(idx)).Interface()
+				return ConvertVariableToExp(res)
+			}
+		}
+
+		if right.Type != ddl.ExpInterface {
+			return nil, NewTypedError("calc.operandTypeMismatch", "[]", leftVal.Type().Name(), ddl.ExpTypeName[right.Type])
+		}
+		return nil, NewTypedError("calc.operandTypeMismatch", "[]", leftVal.Type().Name(), reflect.TypeOf(right.Interface).Name())
+	}
+
+	if right.Type != ddl.ExpInterface {
+		return nil, NewTypedError("calc.operandTypeMismatch", "[]", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
+	}
+	return nil, NewTypedError("calc.operandTypeMismatch", "[]", ddl.ExpTypeName[left.Type], reflect.TypeOf(right.Interface).Name())
 }
 
 func ConvertVariableToExp(variable interface{}) (*ddl.Exp, error) {
@@ -778,132 +898,10 @@ func ConvertVariableToExp(variable interface{}) (*ddl.Exp, error) {
 	}
 }
 
-func calcDot(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
-	if left.Type == ddl.ExpInterface && right.Type == ddl.ExpStr {
-		leftVal := reflect.ValueOf(left.Interface)
-
-		if leftVal.Kind() == reflect.Struct && right.Type == ddl.ExpStr {
-			res, err := GetStructField(left.Interface, right.Str)
-			if err != nil {
-				return nil, err
-			}
-			return ConvertVariableToExp(res)
-		}
-
-		if leftVal.Kind() == reflect.Map {
-			mapKeyType := reflect.TypeOf(left.Interface).Key()
-			mapKeyKind := mapKeyType.Kind()
-
-			if (mapKeyKind == reflect.Uint8 || mapKeyKind == reflect.Uint16 || mapKeyKind == reflect.Uint32 ||
-				mapKeyKind == reflect.Uint64 || mapKeyKind == reflect.Int8 || mapKeyKind == reflect.Int16 ||
-				mapKeyKind == reflect.Int32 || mapKeyKind == reflect.Int64) && right.Type == ddl.ExpInt {
-				key := reflect.ValueOf(right.Int).Convert(mapKeyType)
-				res := leftVal.MapIndex(key).Interface()
-				return ConvertVariableToExp(res)
-			}
-
-			if (mapKeyKind == reflect.Float32 || mapKeyKind == reflect.Float64) && right.Type == ddl.ExpFloat {
-				key := reflect.ValueOf(right.Float).Convert(mapKeyType)
-				res := leftVal.MapIndex(key).Interface()
-				return ConvertVariableToExp(res)
-			}
-
-			if mapKeyKind == reflect.String && right.Type == ddl.ExpStr {
-				key := reflect.ValueOf(right.Str)
-				res := leftVal.MapIndex(key).Interface()
-				return ConvertVariableToExp(res)
-			}
-
-			if mapKeyKind == reflect.Bool && right.Type == ddl.ExpBool {
-				key := reflect.ValueOf(right.Bool)
-				res := leftVal.MapIndex(key).Interface()
-				return ConvertVariableToExp(res)
-			}
-
-			if right.Type == ddl.ExpInterface && reflect.ValueOf(right.Interface).CanConvert(mapKeyType) {
-				key := reflect.ValueOf(right.Interface).Convert(mapKeyType)
-				res := leftVal.MapIndex(key).Interface()
-				return ConvertVariableToExp(res)
-			}
-		}
-
-		if right.Type != ddl.ExpInterface {
-			return nil, NewError("calc.operandTypeMismatch", ".", leftVal.Type().String(), ddl.ExpTypeName[right.Type])
-		}
-		return nil, NewError("calc.operandTypeMismatch", ".", leftVal.Type().String(), reflect.TypeOf(right.Interface).String())
+func handleErr(exp *ddl.Exp, err error) (*ddl.Exp, error) {
+	if err == nil {
+		return exp, nil
 	}
 
-	if right.Type != ddl.ExpInterface {
-		return nil, NewError("calc.operandTypeMismatch", ".", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
-	}
-	return nil, NewError("calc.operandTypeMismatch", ".", ddl.ExpTypeName[left.Type], reflect.TypeOf(right.Interface).Name())
-}
-
-func calcSquareBracket(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
-	if left.Type == ddl.ExpInterface {
-		leftVal := reflect.ValueOf(left.Interface)
-
-		if leftVal.Kind() == reflect.Struct && right.Type == ddl.ExpStr {
-			res, err := GetStructField(left.Interface, right.Str)
-			if err != nil {
-				return nil, err
-			}
-			return ConvertVariableToExp(res)
-		}
-
-		if leftVal.Kind() == reflect.Map {
-			mapKeyType := reflect.TypeOf(left.Interface).Key()
-			mapKeyKind := mapKeyType.Kind()
-
-			if (mapKeyKind == reflect.Uint8 || mapKeyKind == reflect.Uint16 || mapKeyKind == reflect.Uint32 ||
-				mapKeyKind == reflect.Uint64 || mapKeyKind == reflect.Int8 || mapKeyKind == reflect.Int16 ||
-				mapKeyKind == reflect.Int32 || mapKeyKind == reflect.Int64) && right.Type == ddl.ExpInt {
-				key := reflect.ValueOf(right.Int).Convert(mapKeyType)
-				res := leftVal.MapIndex(key).Interface()
-				return ConvertVariableToExp(res)
-			}
-
-			if (mapKeyKind == reflect.Float32 || mapKeyKind == reflect.Float64) && right.Type == ddl.ExpFloat {
-				key := reflect.ValueOf(right.Float).Convert(mapKeyType)
-				res := leftVal.MapIndex(key).Interface()
-				return ConvertVariableToExp(res)
-			}
-
-			if mapKeyKind == reflect.String && right.Type == ddl.ExpStr {
-				key := reflect.ValueOf(right.Str)
-				res := leftVal.MapIndex(key).Interface()
-				return ConvertVariableToExp(res)
-			}
-
-			if mapKeyKind == reflect.Bool && right.Type == ddl.ExpBool {
-				key := reflect.ValueOf(right.Bool)
-				res := leftVal.MapIndex(key).Interface()
-				return ConvertVariableToExp(res)
-			}
-
-			if right.Type == ddl.ExpInterface && reflect.ValueOf(right.Interface).CanConvert(mapKeyType) {
-				key := reflect.ValueOf(right.Interface).Convert(mapKeyType)
-				res := leftVal.MapIndex(key).Interface()
-				return ConvertVariableToExp(res)
-			}
-		}
-
-		if leftVal.Kind() == reflect.Array || leftVal.Kind() == reflect.Slice {
-			if right.Type == ddl.ExpInt {
-				idx := right.Int
-				res := leftVal.Index(int(idx)).Interface()
-				return ConvertVariableToExp(res)
-			}
-		}
-
-		if right.Type != ddl.ExpInterface {
-			return nil, NewError("calc.operandTypeMismatch", "[]", leftVal.Type().Name(), ddl.ExpTypeName[right.Type])
-		}
-		return nil, NewError("calc.operandTypeMismatch", "[]", leftVal.Type().Name(), reflect.TypeOf(right.Interface).Name())
-	}
-
-	if right.Type != ddl.ExpInterface {
-		return nil, NewError("calc.operandTypeMismatch", "[]", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
-	}
-	return nil, NewError("calc.operandTypeMismatch", "[]", ddl.ExpTypeName[left.Type], reflect.TypeOf(right.Interface).Name())
+	return nil, nil
 }

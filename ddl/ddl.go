@@ -20,17 +20,17 @@ func ParseDdl(ddl string) (DDLDef, error) {
 		if tn.TagName == "template" {
 			tplName := "main"
 			if tn.Def != nil {
-				tplName = tn.Def.FuncName
+				tplName = tn.Def.Exp.FuncName
 			}
 			def.TplMap[tplName] = tn
 
 			// style
 		} else if tn.TagName == "style" {
 			if len(tn.Children) > 1 {
-				return def, NewDdlParseError(ddl, "ddl.invalidStyleSection", tn.Pos)
+				return def, NewDdlError(ddl, tn.Pos, "ddl.invalidStyleSection")
 			}
 			if len(tn.Children) == 1 && tn.Children[0].Type != TplNodeText {
-				return def, NewDdlParseError(ddl, "ddl.invalidStyleSection", tn.Pos)
+				return def, NewDdlError(ddl, tn.Pos, "ddl.invalidStyleSection")
 			}
 			classMap, cerr := parseCss(tn.Children[0].Text)
 			if cerr != nil {

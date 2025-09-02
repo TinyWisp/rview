@@ -42,6 +42,13 @@ var variableMap = map[string]interface{}{
 	},
 	"arrStr": []string{"hello", "world"},
 	"arrInt": []int{10, 11, 12, 13},
+
+	"funcWithoutParamsNorReturn": func() {},
+	"funcPlus":                   func(a int, b int) int { return a + b },
+	"funcMinus":                  func(a int, b int) int { return a - b },
+	"funcTimes":                  func(a int, b int) int { return a * b },
+	"funcDivision":               func(a int, b int) int { return a / b },
+	"funcPlusReturnMulti":        func(a int, b int) (int, error) { return a + b, nil },
 }
 
 func getVariable(name string) (interface{}, error) {
@@ -716,6 +723,28 @@ var calcExpCases = []CalcExpCase{
 		expect: `nil`,
 	},
 
+	// --------------------- func --------------------------
+	{
+		exp:    `funcWithoutParamsNorReturn()`,
+		expect: `nil`,
+	},
+	{
+		exp:    `funcPlus(1, 2)`,
+		expect: `3`,
+	},
+	{
+		exp:    `funcMinus(100, 101)`,
+		expect: `-1`,
+	},
+	{
+		exp:    `funcPlus(funcTimes(100, 3), funcDivision(100, 2))`,
+		expect: `350`,
+	},
+	{
+		exp:    `funcPlusReturnMulti(1, 2)`,
+		expect: `3`,
+	},
+
 	// ----------------------- . ---------------------------
 	{
 		exp:    `chickenStruct.Name`,
@@ -834,7 +863,7 @@ func TestCalcExp(t *testing.T) {
 
 		res, err2 := CalcExp(exp, getVariable)
 		if err2 != nil {
-			if fmtErr, ok := err2.(*FmtError); ok {
+			if fmtErr, ok := err2.(*TypedError); ok {
 				if fmtErr.etype != testCase.err {
 					t.Log(err2)
 					t.Fatal("the error occured during the executing of this expression is not as expected. ")
@@ -846,6 +875,20 @@ func TestCalcExp(t *testing.T) {
 		expect, err3 := ddl.ParseExp(testCase.expect)
 		if err3 != nil {
 			t.Fatal(err3)
+		}
+
+		if expect.Type == ddl.ExpCalc && expect.Operator == "-" {
+			if expect.Right.Type == ddl.ExpInt {
+				expect = &ddl.Exp{
+					Type: ddl.ExpInt,
+					Int:  -expect.Right.Int,
+				}
+			} else if expect.Right.Type == ddl.ExpFloat {
+				expect = &ddl.Exp{
+					Type:  ddl.ExpFloat,
+					Float: -expect.Right.Float,
+				}
+			}
 		}
 
 		if !expect.Equal(res) {

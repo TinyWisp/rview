@@ -1,7 +1,6 @@
 package ddl
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
@@ -214,6 +213,27 @@ var (
 			},
 		},
 		{
+			str: "func1_2()",
+			exp: Exp{
+				Type:       ExpFunc,
+				FuncName:   "func1_2",
+				FuncParams: make([]*Exp, 0),
+			},
+		},
+		{
+			str: "func1(1)",
+			exp: Exp{
+				Type:     ExpFunc,
+				FuncName: "func1",
+				FuncParams: []*Exp{
+					{
+						Type: ExpInt,
+						Int:  1,
+					},
+				},
+			},
+		},
+		{
 			str: `func1("param1", param2, 333, 555.5, true, false, nil, var1.attr)`,
 			exp: Exp{
 				Type:     ExpFunc,
@@ -256,6 +276,116 @@ var (
 						Right: &Exp{
 							Type: ExpStr,
 							Str:  "attr",
+						},
+					},
+				},
+			},
+		},
+		{
+			str: `func1(func2())`,
+			exp: Exp{
+				Type:     ExpFunc,
+				FuncName: "func1",
+				FuncParams: []*Exp{
+					{
+						Type:       ExpFunc,
+						FuncName:   "func2",
+						FuncParams: []*Exp{},
+					},
+				},
+			},
+		},
+		{
+			str: `func1(func2(a, b), func3(c, d))`,
+			exp: Exp{
+				Type:     ExpFunc,
+				FuncName: "func1",
+				FuncParams: []*Exp{
+					{
+						Type:     ExpFunc,
+						FuncName: "func2",
+						FuncParams: []*Exp{
+							{
+								Type:     ExpVar,
+								Variable: "a",
+							},
+							{
+								Type:     ExpVar,
+								Variable: "b",
+							},
+						},
+					},
+					{
+						Type:     ExpFunc,
+						FuncName: "func3",
+						FuncParams: []*Exp{
+							{
+								Type:     ExpVar,
+								Variable: "c",
+							},
+							{
+								Type:     ExpVar,
+								Variable: "d",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			str: `func1(func2(a, func3(3)), (func4(c, d) + 1) / 2)`,
+			exp: Exp{
+				Type:     ExpFunc,
+				FuncName: "func1",
+				FuncParams: []*Exp{
+					{
+						Type:     ExpFunc,
+						FuncName: "func2",
+						FuncParams: []*Exp{
+							{
+								Type:     ExpVar,
+								Variable: "a",
+							},
+							{
+								Type:     ExpFunc,
+								FuncName: "func3",
+								FuncParams: []*Exp{
+									{
+										Type: ExpInt,
+										Int:  3,
+									},
+								},
+							},
+						},
+					},
+					{
+						Type:     ExpCalc,
+						Operator: "/",
+						Left: &Exp{
+							Type:     ExpCalc,
+							Operator: "+",
+							Left: &Exp{
+								Type:     ExpFunc,
+								FuncName: "func4",
+								FuncParams: []*Exp{
+									{
+										Type:     ExpVar,
+										Variable: "c",
+									},
+									{
+										Type:     ExpVar,
+										Variable: "d",
+									},
+								},
+							},
+							Right: &Exp{
+								Type: ExpInt,
+								Int:  1,
+							},
+						},
+						Right: &Exp{
+							Type: ExpInt,
+							Int:  2,
 						},
 					},
 				},
@@ -954,6 +1084,14 @@ var (
 			str: "func1(a,)",
 			err: "exp.expectingParameter",
 		},
+		{
+			str: "func1(a",
+			err: "exp.mismatchedParenthesis",
+		},
+		{
+			str: "func1(a, func2(a)",
+			err: "exp.mismatchedParenthesis",
+		},
 	}
 )
 
@@ -963,11 +1101,12 @@ func TestParseExp(t *testing.T) {
 	var str string
 	for _, testCase := range parseExpTestCases {
 		str = testCase.str
-		fmt.Printf("expression: %s\n", str)
+		t.Logf("expression: %s\n", str)
 		realExp, err = ParseExp(str)
 		if err != nil {
-			if tpe, ok := err.(*DdlParseError); ok {
-				if testCase.err != "" && tpe.err == testCase.err {
+			if tpe, ok := err.(*DdlError); ok {
+				if testCase.err != "" && tpe.etype == testCase.err {
+					t.Log(tpe.Error())
 					continue
 				}
 			}

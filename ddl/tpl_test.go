@@ -1,7 +1,6 @@
 package ddl
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
@@ -144,10 +143,12 @@ var (
 				{
 					Type:    TplNodeTag,
 					TagName: "template",
+					Idx:     0,
 					Children: []*TplNode{
 						{
 							Type: TplNodeText,
 							Text: "hello, world!",
+							Idx:  1,
 						},
 						{
 							Type: TplNodeExp,
@@ -163,6 +164,7 @@ var (
 									Variable: "var2",
 								},
 							},
+							Idx: 2,
 						},
 					},
 				},
@@ -177,10 +179,12 @@ var (
 				{
 					Type:    TplNodeTag,
 					TagName: "template",
+					Idx:     0,
 					Children: []*TplNode{
 						{
 							Type:    TplNodeTag,
 							TagName: "comp-a",
+							Idx:     0,
 						},
 					},
 				},
@@ -195,10 +199,12 @@ var (
 				{
 					Type:    TplNodeTag,
 					TagName: "template",
+					Idx:     0,
 					Children: []*TplNode{
 						{
 							Type:    TplNodeTag,
 							TagName: "comp-a",
+							Idx:     0,
 						},
 					},
 				},
@@ -213,13 +219,25 @@ var (
 				{
 					Type:    TplNodeTag,
 					TagName: "template",
+					Idx:     0,
 					Children: []*TplNode{
 						{
 							Type:    TplNodeTag,
 							TagName: "comp-a",
-							Attrs: map[string]string{
-								"attr1": "val1",
-								"attr2": "val2",
+							Idx:     0,
+							Attrs: map[string]*TplAttr{
+								"attr1": {
+									Exp: &Exp{
+										Type: ExpStr,
+										Str:  "val1",
+									},
+								},
+								"attr2": {
+									Exp: &Exp{
+										Type: ExpStr,
+										Str:  "val2",
+									},
+								},
 							},
 						},
 					},
@@ -237,29 +255,38 @@ var (
 				{
 					Type:    TplNodeTag,
 					TagName: "template",
+					Idx:     0,
 					Children: []*TplNode{
 						{
 							Type:    TplNodeTag,
 							TagName: "comp-a",
-							If: &Exp{
-								Type:     ExpVar,
-								Variable: "var1",
+							Idx:     0,
+							If: &TplAttr{
+								Exp: &Exp{
+									Type:     ExpVar,
+									Variable: "var1",
+								},
 							},
 						},
 						{
 							Type:    TplNodeTag,
 							TagName: "comp-b",
-							ElseIf: &Exp{
-								Type:     ExpVar,
-								Variable: "var2",
+							Idx:     1,
+							ElseIf: &TplAttr{
+								Exp: &Exp{
+									Type:     ExpVar,
+									Variable: "var2",
+								},
 							},
 						},
 						{
 							Type:    TplNodeTag,
 							TagName: "comp-c",
-							Else: &Exp{
-								Type:     ExpVar,
-								Variable: "",
+							Idx:     2,
+							Else: &TplAttr{
+								Exp: &Exp{
+									Type: ExpNil,
+								},
 							},
 						},
 					},
@@ -275,14 +302,16 @@ var (
 				{
 					Type:    TplNodeTag,
 					TagName: "template",
+					Idx:     0,
 					Children: []*TplNode{
 						{
 							Type:    TplNodeTag,
 							TagName: "comp-a",
+							Idx:     0,
 							For: &TplFor{
 								Idx:  "idx",
 								Item: "item",
-								Range: Exp{
+								Range: &Exp{
 									Type:     ExpVar,
 									Variable: "items",
 								},
@@ -298,10 +327,13 @@ var (
 				{
 					Type:    TplNodeTag,
 					TagName: "template",
-					Def: &Exp{
-						Type:       ExpFunc,
-						FuncName:   "test",
-						FuncParams: []*Exp{},
+					Idx:     0,
+					Def: &TplAttr{
+						Exp: &Exp{
+							Type:       ExpFunc,
+							FuncName:   "test",
+							FuncParams: []*Exp{},
+						},
 					},
 				},
 			},
@@ -312,21 +344,25 @@ var (
 				{
 					Type:    TplNodeTag,
 					TagName: "template",
-					Def: &Exp{
-						Type:     ExpFunc,
-						FuncName: "test",
-						FuncParams: []*Exp{
-							{
-								Type:     ExpVar,
-								Variable: "a",
-							},
-							{
-								Type:     ExpVar,
-								Variable: "b",
-							},
-							{
-								Type:     ExpVar,
-								Variable: "c",
+
+					Idx: 0,
+					Def: &TplAttr{
+						Exp: &Exp{
+							Type:     ExpFunc,
+							FuncName: "test",
+							FuncParams: []*Exp{
+								{
+									Type:     ExpVar,
+									Variable: "a",
+								},
+								{
+									Type:     ExpVar,
+									Variable: "b",
+								},
+								{
+									Type:     ExpVar,
+									Variable: "c",
+								},
 							},
 						},
 					},
@@ -339,21 +375,24 @@ var (
 				{
 					Type:    TplNodeTag,
 					TagName: "template",
-					Def: &Exp{
-						Type:     ExpFunc,
-						FuncName: "panel-link",
-						FuncParams: []*Exp{
-							{
-								Type:     ExpVar,
-								Variable: "a",
-							},
-							{
-								Type:     ExpVar,
-								Variable: "b",
-							},
-							{
-								Type:     ExpVar,
-								Variable: "c",
+					Idx:     0,
+					Def: &TplAttr{
+						Exp: &Exp{
+							Type:     ExpFunc,
+							FuncName: "panel-link",
+							FuncParams: []*Exp{
+								{
+									Type:     ExpVar,
+									Variable: "a",
+								},
+								{
+									Type:     ExpVar,
+									Variable: "b",
+								},
+								{
+									Type:     ExpVar,
+									Variable: "c",
+								},
 							},
 						},
 					},
@@ -364,7 +403,7 @@ var (
 )
 
 func isTplForEqual(a TplFor, b TplFor) bool {
-	return a.Idx == b.Idx && a.Item == b.Item && (&a).Range.Equal(&b.Range)
+	return a.Idx == b.Idx && a.Item == b.Item && (&a).Range.Equal(b.Range)
 }
 
 func isTplEqual(a []*TplNode, b []*TplNode) bool {
@@ -385,27 +424,31 @@ func isTplEqual(a []*TplNode, b []*TplNode) bool {
 				return false
 			}
 
+			if node1.Idx != node2.Idx {
+				return false
+			}
+
 			if (node1.Def != nil && node2.Def == nil) ||
 				(node1.Def == nil && node2.Def != nil) ||
-				(node1.Def != nil && node2.Def != nil && !node1.Def.Equal(node2.Def)) {
+				(node1.Def != nil && node2.Def != nil && !node1.Def.Exp.Equal(node2.Def.Exp)) {
 				return false
 			}
 
 			if (node1.If != nil && node2.If == nil) ||
 				(node1.If == nil && node2.If != nil) ||
-				(node1.If != nil && node2.If != nil && !node1.If.Equal(node2.If)) {
+				(node1.If != nil && node2.If != nil && !node1.If.Exp.Equal(node2.If.Exp)) {
 				return false
 			}
 
 			if (node1.ElseIf != nil && node2.ElseIf == nil) ||
 				(node1.ElseIf == nil && node2.ElseIf != nil) ||
-				(node1.ElseIf != nil && node2.ElseIf != nil && !node1.ElseIf.Equal(node2.ElseIf)) {
+				(node1.ElseIf != nil && node2.ElseIf != nil && !node1.ElseIf.Exp.Equal(node2.ElseIf.Exp)) {
 				return false
 			}
 
 			if (node1.Else != nil && node2.Else == nil) ||
 				(node1.Else == nil && node2.Else != nil) ||
-				(node1.Else != nil && node2.Else != nil && !node1.Else.Equal(node2.Else)) {
+				(node1.Else != nil && node2.Else != nil && !node1.Else.Exp.Equal(node2.Else.Exp)) {
 				return false
 			}
 
@@ -415,24 +458,7 @@ func isTplEqual(a []*TplNode, b []*TplNode) bool {
 				return false
 			}
 
-			if (node1.Binds == nil && node2.Binds != nil) ||
-				(node1.Binds != nil && node2.Binds == nil) ||
-				(node1.Binds != nil && node2.Binds != nil && len(node1.Binds) != len(node2.Binds)) {
-				return false
-			}
-
-			if node1.Binds != nil {
-				for bkey, bval := range node1.Binds {
-					if _, ok := node2.Binds[bkey]; !ok {
-						return false
-					}
-					if !bval.Equal(node2.Binds[bkey]) {
-						return false
-					}
-				}
-			}
-
-			if (node1.Events == nil && node2.Binds != nil) ||
+			if (node1.Events == nil && node2.Events != nil) ||
 				(node1.Events != nil && node2.Events == nil) ||
 				(node1.Events == nil && node2.Events == nil && len(node1.Events) != len(node2.Events)) {
 				return false
@@ -443,7 +469,7 @@ func isTplEqual(a []*TplNode, b []*TplNode) bool {
 					if _, ok := node2.Events[ekey]; !ok {
 						return false
 					}
-					if !eval.Equal(node2.Events[ekey]) {
+					if !eval.Exp.Equal(node2.Events[ekey].Exp) {
 						return false
 					}
 				}
@@ -460,7 +486,7 @@ func isTplEqual(a []*TplNode, b []*TplNode) bool {
 					if _, ok := node2.Attrs[akey]; !ok {
 						return false
 					}
-					if aval != node2.Attrs[akey] {
+					if !aval.Exp.Equal(node2.Attrs[akey].Exp) {
 						return false
 					}
 				}
@@ -481,11 +507,12 @@ func TestParseTpl(t *testing.T) {
 	var str string
 	for _, testCase := range parseTplTestCases {
 		str = testCase.str
-		fmt.Printf("- - - - - - - - - - - - - - - - -\ntemplate:\n%s\n", str)
+		t.Logf("- - - - - - - - - - - - - - - - -\ntemplate:\n%s\n", str)
 		parsedTpl, err = parseTpl(str)
 		if err != nil {
-			if tpe, ok := err.(*DdlParseError); ok {
-				if testCase.err != "" && tpe.err == testCase.err {
+			if tpe, ok := err.(*DdlError); ok {
+				if testCase.err != "" && tpe.etype == testCase.err {
+					t.Log(tpe.Error())
 					continue
 				}
 			}

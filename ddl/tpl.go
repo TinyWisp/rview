@@ -40,33 +40,40 @@ const (
 type TplNode struct {
 	Type       TplNodeType
 	TagName    string
+	Parent     *TplNode
 	Children   []*TplNode
-	Binds      map[string]*Exp
-	Events     map[string]*Exp
-	Attrs      map[string]string
+	Idx        int
+	Events     map[string]*TplAttr
+	Attrs      map[string]*TplAttr
 	Directives map[string]string
 	Text       string
 	Exp        *Exp
-	If         *Exp
-	ElseIf     *Exp
-	Else       *Exp
+	If         *TplAttr
+	ElseIf     *TplAttr
+	Else       *TplAttr
 	For        *TplFor
-	Def        *Exp
+	Def        *TplAttr
 	Pos        int
 }
 
-type TplFor struct {
-	Item  string
-	Idx   string
-	Range Exp
+type TplAttr struct {
+	Pos int
+	Exp *Exp
 }
 
-func (tn *TplNode) setAttr(key string, val string) error {
+type TplFor struct {
+	Pos   int
+	Item  string
+	Idx   string
+	Range *Exp
+}
+
+func (tn *TplNode) addAttr(pos int, key string, val string) error {
 	// def
 	if key == "def" {
 		matches := tplPattern.def.FindStringSubmatch(val)
 		if len(matches) == 0 {
-			return NewDdlParseError("", "tpl.invalidDefAttr", 0)
+			return NewDdlError("", pos, "tpl.invalidDefAttr")
 		}
 		exp := &Exp{
 			Type:       ExpFunc,
@@ -82,12 +89,15 @@ func (tn *TplNode) setAttr(key string, val string) error {
 					return perr
 				}
 				if pexp.Type != ExpVar {
-					return NewDdlParseError("", "tpl.invalidDefAttr", 0)
+					return NewDdlError("", pos, "tpl.invalidDefAttr")
 				}
 				exp.FuncParams = append(exp.FuncParams, pexp)
 			}
 		}
-		tn.Def = exp
+		tn.Def = &TplAttr{
+			Pos: pos,
+			Exp: exp,
+		}
 
 		// v-if
 	} else if key == "v-if" {
@@ -96,12 +106,15 @@ func (tn *TplNode) setAttr(key string, val string) error {
 			return err
 		}
 		if tn.If != nil {
-			return NewDdlParseError("", "tpl.duplicateDirective", 0)
+			return NewDdlError("", pos, "tpl.duplicateDirective")
 		}
 		if tn.ElseIf != nil || tn.Else != nil || tn.For != nil {
-			return NewDdlParseError("", "tpl.conflictedDirective", 0)
+			return NewDdlError("", pos, "tpl.conflictedDirective")
 		}
-		tn.If = exp
+		tn.If = &TplAttr{
+			Pos: pos,
+			Exp: exp,
+		}
 
 		// v-else-if
 	} else if key == "v-else-if" {
@@ -110,46 +123,52 @@ func (tn *TplNode) setAttr(key string, val string) error {
 			return err
 		}
 		if tn.ElseIf != nil {
-			return NewDdlParseError("", "tpl.duplicateDirective", 0)
+			return NewDdlError("", pos, "tpl.duplicateDirective")
 		}
 		if tn.If != nil || tn.Else != nil || tn.For != nil {
-			return NewDdlParseError("", "tpl.conflictedDirective", 0)
+			return NewDdlError("", pos, "tpl.conflictedDirective")
 		}
-		tn.ElseIf = exp
+		tn.ElseIf = &TplAttr{
+			Pos: pos,
+			Exp: exp,
+		}
 
 		// v-else
 	} else if key == "v-else" {
 		if tn.Else != nil {
-			return NewDdlParseError("", "tpl.duplicateDirective", 0)
+			return NewDdlError("", pos, "tpl.duplicateDirective")
 		}
 		if tn.If != nil || tn.ElseIf != nil || tn.For != nil {
-			return NewDdlParseError("", "tpl.conflictedDirective", 0)
+			return NewDdlError("", pos, "tpl.conflictedDirective")
 		}
-		tn.Else = &Exp{
-			Type:     ExpVar,
-			Variable: "",
+		tn.Else = &TplAttr{
+			Pos: pos,
+			Exp: &Exp{
+				Type: ExpNil,
+			},
 		}
 
 		// v-for
 	} else if key == "v-for" {
 		if tn.For != nil {
-			return NewDdlParseError("", "tpl.duplicateDirective", 0)
+			return NewDdlError("", pos, "tpl.duplicateDirective")
 		}
 		if tn.If != nil || tn.ElseIf != nil || tn.Else != nil {
-			return NewDdlParseError("", "tpl.conflictedDirective", 0)
+			return NewDdlError("", pos, "tpl.conflictedDirective")
 		}
 		matches := tplPattern.vfor.FindStringSubmatch(val)
 		if len(matches) == 0 {
-			return NewDdlParseError("", "tpl.invalidForDirective", 0)
+			return NewDdlError("", pos, "tpl.invalidForDirective")
 		}
 		rangeExp, err := ParseExp(matches[3])
 		if err != nil {
 			return err
 		}
 		tn.For = &TplFor{
+			Pos:   pos,
 			Item:  matches[2],
 			Idx:   matches[1],
-			Range: *rangeExp,
+			Range: rangeExp,
 		}
 
 		// v-bind:var
@@ -159,18 +178,16 @@ func (tn *TplNode) setAttr(key string, val string) error {
 		if err != nil {
 			return err
 		}
-		if tn.Binds == nil {
-			tn.Binds = make(map[string]*Exp)
+		if tn.Attrs == nil {
+			tn.Attrs = make(map[string]*TplAttr)
 		}
-		if _, ok := tn.Binds[vname]; ok {
-			return NewDdlParseError("", "tpl.duplicateAttribute", 0)
+		if _, ok := tn.Attrs[vname]; ok {
+			return NewDdlError("", pos, "tpl.duplicateAttribute")
 		}
-		if tn.Attrs != nil {
-			if _, ok := tn.Attrs[vname]; ok {
-				return NewDdlParseError("", "tpl.duplicateAttribute", 0)
-			}
+		tn.Attrs[vname] = &TplAttr{
+			Pos: pos,
+			Exp: exp,
 		}
-		tn.Binds[vname] = exp
 
 		// :var
 	} else if strings.HasPrefix(key, ":") {
@@ -179,18 +196,16 @@ func (tn *TplNode) setAttr(key string, val string) error {
 		if err != nil {
 			return err
 		}
-		if tn.Binds == nil {
-			tn.Binds = make(map[string]*Exp)
+		if tn.Attrs == nil {
+			tn.Attrs = make(map[string]*TplAttr)
 		}
-		if _, ok := tn.Binds[vname]; ok {
-			return NewDdlParseError("", "tpl.duplicateAttribute", 0)
+		if _, ok := tn.Attrs[vname]; ok {
+			return NewDdlError("", pos, "tpl.duplicateAttribute")
 		}
-		if tn.Attrs != nil {
-			if _, ok := tn.Attrs[vname]; ok {
-				return NewDdlParseError("", "tpl.duplicateAttribute", 0)
-			}
+		tn.Attrs[vname] = &TplAttr{
+			Pos: pos,
+			Exp: exp,
 		}
-		tn.Binds[vname] = exp
 
 		// v-on:event
 	} else if strings.HasPrefix(key, "v-on:") {
@@ -200,12 +215,15 @@ func (tn *TplNode) setAttr(key string, val string) error {
 			return err
 		}
 		if tn.Events == nil {
-			tn.Events = make(map[string]*Exp)
+			tn.Events = make(map[string]*TplAttr)
 		}
 		if _, ok := tn.Events[event]; ok {
-			return NewDdlParseError("", "tpl.duplicateEventHandler", 0)
+			return NewDdlError("", pos, "tpl.duplicateEventHandler")
 		}
-		tn.Events[event] = exp
+		tn.Events[event] = &TplAttr{
+			Pos: pos,
+			Exp: exp,
+		}
 
 		// @event
 	} else if strings.HasPrefix(key, "@") {
@@ -215,27 +233,31 @@ func (tn *TplNode) setAttr(key string, val string) error {
 			return err
 		}
 		if tn.Events == nil {
-			tn.Events = make(map[string]*Exp)
+			tn.Events = make(map[string]*TplAttr)
 		}
 		if _, ok := tn.Events[event]; ok {
-			return NewDdlParseError("", "tpl.duplicateEventHandler", 0)
+			return NewDdlError("", pos, "tpl.duplicateEventHandler")
 		}
-		tn.Events[event] = exp
+		tn.Events[event] = &TplAttr{
+			Pos: pos,
+			Exp: exp,
+		}
 
 		// ordinary attritube
 	} else {
 		if tn.Attrs == nil {
-			tn.Attrs = make(map[string]string)
+			tn.Attrs = make(map[string]*TplAttr)
 		}
 		if _, ok := tn.Attrs[key]; ok {
-			return NewDdlParseError("", "tpl.duplicateAttribute", 0)
+			return NewDdlError("", pos, "tpl.duplicateAttribute")
 		}
-		if tn.Binds != nil {
-			if _, ok := tn.Binds[key]; ok {
-				return NewDdlParseError("", "tpl.duplicateAttribute", 0)
-			}
+		tn.Attrs[key] = &TplAttr{
+			Pos: pos,
+			Exp: &Exp{
+				Type: ExpStr,
+				Str:  val,
+			},
 		}
-		tn.Attrs[key] = val
 	}
 
 	return nil
@@ -272,6 +294,11 @@ func parseTpl(tpl string) ([]*TplNode, error) {
 			}
 		}
 
+		nodeIdx := 0
+		if parentTagNode != nil {
+			nodeIdx = len(parentTagNode.Children)
+		}
+
 		left := tpl[pos:]
 
 		// <tag
@@ -281,15 +308,19 @@ func parseTpl(tpl string) ([]*TplNode, error) {
 				Type:    TplNodeTag,
 				TagName: name,
 				Pos:     pos,
+				Parent:  parentTagNode,
+				Idx:     nodeIdx,
 			}
 			tagNodeStack = append(tagNodeStack, &tagNode)
 			isReadingTag = true
 			if parentTagNode != nil {
 				if trim(text) != "" {
 					textNode := TplNode{
-						Type: TplNodeText,
-						Text: trim(text),
-						Pos:  pos - len(text),
+						Type:   TplNodeText,
+						Text:   trim(text),
+						Pos:    pos - len(text),
+						Parent: parentTagNode,
+						Idx:    nodeIdx,
 					}
 					text = ""
 					parentTagNode.Children = append(parentTagNode.Children, &textNode)
@@ -315,17 +346,19 @@ func parseTpl(tpl string) ([]*TplNode, error) {
 			// </tag>
 		} else if matches := tplPattern.closingTag.FindStringSubmatch(left); !isReadingTag && len(matches) > 0 {
 			if parentTagNode == nil {
-				return nodeArr, NewDdlParseError(tpl, "tpl.missingOpeningTag", pos)
+				return nodeArr, NewDdlError(tpl, pos, "tpl.missingOpeningTag")
 			}
 			tagName := matches[1]
 			if tagName != parentTagNode.TagName {
-				return nodeArr, NewDdlParseError(tpl, "tpl.mismatchedTag", pos)
+				return nodeArr, NewDdlError(tpl, pos, "tpl.mismatchedTag")
 			}
 			if parentTagNode != nil && trim(text) != "" {
 				textNode := TplNode{
-					Type: TplNodeText,
-					Text: trim(text),
-					Pos:  pos - len(text),
+					Type:   TplNodeText,
+					Text:   trim(text),
+					Pos:    pos - len(text),
+					Parent: parentTagNode,
+					Idx:    nodeIdx,
 				}
 				text = ""
 				parentTagNode.Children = append(parentTagNode.Children, &textNode)
@@ -338,6 +371,7 @@ func parseTpl(tpl string) ([]*TplNode, error) {
 		} else if matches := tplPattern.attrStart.FindStringSubmatch(left); isReadingTag && len(matches) > 0 {
 			attrKey := matches[1]
 			attrVal := ""
+			beginPos := pos
 			complete := false
 			klen := len(attrKey)
 			if left[klen+1] == '"' {
@@ -361,20 +395,15 @@ func parseTpl(tpl string) ([]*TplNode, error) {
 			}
 			if !complete {
 				if left[klen+1] == '"' {
-					return nodeArr, NewDdlParseError(tpl, "tpl.mismatchedDoubleQuotationMark", pos)
+					return nodeArr, NewDdlError(tpl, pos+klen+1, "tpl.mismatchedDoubleQuotationMark")
 				} else {
-					return nodeArr, NewDdlParseError(tpl, "tpl.mismatchedSingleQuotationMark", pos)
+					return nodeArr, NewDdlError(tpl, pos+klen+1, "tpl.mismatchedSingleQuotationMark")
 				}
 			}
-			err := curTagNode.setAttr(attrKey, attrVal)
+			err := curTagNode.addAttr(beginPos, attrKey, attrVal)
 			if err != nil {
-				if tpe, ok := err.(*DdlParseError); ok {
+				if tpe, ok := err.(*DdlError); ok {
 					tpe.SetDdl(tpl)
-					if tpe.IsExpError() {
-						tpe.AddOffset(pos + klen + 2)
-					} else {
-						tpe.SetPos(pos)
-					}
 				}
 				return nodeArr, err
 			}
@@ -383,9 +412,9 @@ func parseTpl(tpl string) ([]*TplNode, error) {
 		} else if matches := tplPattern.attrWithoutVal.FindStringSubmatch(left); isReadingTag && len(matches) > 0 {
 			attrKey := matches[1]
 			attrVal := ""
-			err := curTagNode.setAttr(attrKey, attrVal)
+			err := curTagNode.addAttr(pos, attrKey, attrVal)
 			if err != nil {
-				if tpe, ok := err.(*DdlParseError); ok {
+				if tpe, ok := err.(*DdlError); ok {
 					tpe.SetDdl(tpl)
 					tpe.SetPos(pos)
 				}
@@ -397,9 +426,11 @@ func parseTpl(tpl string) ([]*TplNode, error) {
 		} else if !isReadingTag && strings.HasPrefix(left, "{{") {
 			if parentTagNode != nil && trim(text) != "" {
 				textNode := TplNode{
-					Type: TplNodeText,
-					Text: trim(text),
-					Pos:  pos,
+					Type:   TplNodeText,
+					Text:   trim(text),
+					Pos:    pos,
+					Parent: parentTagNode,
+					Idx:    nodeIdx,
 				}
 				text = ""
 				parentTagNode.Children = append(parentTagNode.Children, &textNode)
@@ -420,9 +451,11 @@ func parseTpl(tpl string) ([]*TplNode, error) {
 						return nodeArr, err
 					}
 					expNode := TplNode{
-						Type: TplNodeExp,
-						Exp:  exp,
-						Pos:  pos + 2,
+						Type:   TplNodeExp,
+						Exp:    exp,
+						Pos:    pos + 2,
+						Parent: parentTagNode,
+						Idx:    nodeIdx,
 					}
 					parentTagNode.Children = append(parentTagNode.Children, &expNode)
 					pos += idx + 2
@@ -440,16 +473,16 @@ func parseTpl(tpl string) ([]*TplNode, error) {
 
 			// others
 		} else {
-			return nodeArr, NewDdlParseError(tpl, "tpl.unexpectedToken", pos)
+			return nodeArr, NewDdlError(tpl, pos, "tpl.unexpectedToken")
 		}
 	}
 
 	if isReadingTag && curTagNode != nil {
-		return nodeArr, NewDdlParseError(tpl, "tpl.incompleteTag", curTagNode.Pos)
+		return nodeArr, NewDdlError(tpl, curTagNode.Pos, "tpl.incompleteTag")
 	}
 
 	if len(tagNodeStack) > 0 {
-		return nodeArr, NewDdlParseError(tpl, "tpl.missingClosingTag", tagNodeStack[len(tagNodeStack)-1].Pos)
+		return nodeArr, NewDdlError(tpl, tagNodeStack[len(tagNodeStack)-1].Pos, "tpl.missingClosingTag")
 	}
 
 	return nodeArr, nil

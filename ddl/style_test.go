@@ -1462,11 +1462,12 @@ func TestParseCss(t *testing.T) {
 	var str string
 	for _, testCase := range parseCssTestCases {
 		str = testCase.str
-		fmt.Printf("css: %s\n", str)
+		t.Logf("css: %s\n", str)
 		realClassMap, err = parseCss(str)
 		if err != nil {
-			if tpe, ok := err.(*DdlParseError); ok {
-				if testCase.err != "" && tpe.err == testCase.err {
+			if tpe, ok := err.(*DdlError); ok {
+				if testCase.err != "" && tpe.etype == testCase.err {
+					t.Log(tpe.Error())
 					continue
 				}
 			}
