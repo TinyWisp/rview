@@ -1,31 +1,9 @@
-package rview
+package tperr
 
 import (
 	"fmt"
 	"strings"
-
-	"github.com/TinyWisp/rview/i18n"
 )
-
-type TypedError struct {
-	etype string
-	vars  []any
-}
-
-func NewTypedError(etype string, vars ...any) *TypedError {
-	return &TypedError{
-		etype: etype,
-		vars:  vars,
-	}
-}
-
-func (fe *TypedError) Error() string {
-	return fmt.Sprintf(i18n.T(fe.etype), fe.vars...)
-}
-
-func (fe *TypedError) Is(etype string) bool {
-	return fe.etype == etype
-}
 
 type TraceableTypedError struct {
 	TypedError
@@ -36,7 +14,7 @@ type TraceableTypedError struct {
 func (tte *TraceableTypedError) Error() string {
 	msg := ""
 
-	msg = fmt.Sprintf(i18n.T(tte.etype), tte.vars...) + "\n"
+	msg = fmt.Sprintf(T(tte.etype), tte.vars...) + "\n"
 
 	if tte.pos == -1 || tte.raw == "" {
 		tte.pos = len(tte.raw) - 1
@@ -92,6 +70,17 @@ func (tte *TraceableTypedError) IsKindOf(kind string) bool {
 	return strings.HasPrefix(tte.etype, kind)
 }
 
+func NewTraceableTypedError(raw string, pos int, etype string, vars ...any) *TraceableTypedError {
+	return &TraceableTypedError{
+		TypedError: TypedError{
+			etype: etype,
+			vars:  vars,
+		},
+		raw: raw,
+		pos: pos,
+	}
+}
+
 func IsErrorType(err error, etype string) bool {
 	if terr, ok := err.(*TypedError); ok {
 		return terr.Is(etype)
@@ -102,15 +91,4 @@ func IsErrorType(err error, etype string) bool {
 	}
 
 	return false
-}
-
-func NewTraceableTypedError(raw string, pos int, etype string, vars ...any) *TraceableTypedError {
-	return &TraceableTypedError{
-		TypedError: TypedError{
-			etype: etype,
-			vars:  vars,
-		},
-		raw: raw,
-		pos: pos,
-	}
 }

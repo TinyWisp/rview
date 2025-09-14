@@ -1,4 +1,4 @@
-package i18n
+package tperr
 
 var msgMap = map[string]string{
 	"css.mismatchedCurlyBrace":          "mismatched brace",
@@ -38,6 +38,7 @@ var msgMap = map[string]string{
 	"util.SetStructField.cannotSetFieldValue": "cannot set the value of the field: %s",
 	"util.GetStructField.fieldNotExist":       "invalid field: %s",
 	"util.GetStructField.unexportedField":     "unexported field: %s",
+	"util.GetStructField.unavailableField":    "unavailable field: %s",
 
 	"calc.emptyVariableName":       "empty variable name",
 	"calc.operandTypeMismatch":     "Type mismatch - cannot perform '%s' operation between '%s' and '%s'",
@@ -50,16 +51,18 @@ var msgMap = map[string]string{
 	"calc.argumentNumberMismatch":  `function "%s" expect %d arguments, but got %d`,
 	"calc.argumentNumberNotEnough": `function "%s" expect %d or more arguments, but got %d`,
 
-	"comp.compNotFound":               "component not found: '%s' is not recognized. check if it is registered or spelled correctly.",
-	"comp.propNotAllowed":             "invalid property: '%s' is not allowed on '%s",
-	"comp.propTypeMismatch":           "invalid property: cannot assign %s to %s on %s",
-	"comp.unregisteredutilonent":      "unregistered utilonent: %s",
-	"comp.cannotResolveComponent":     "failed to resolve component: %s",
-	"comp.SetCompProp.propNotExist":   "invalid property: %s",
-	"comp.SetCompProp.typeMismatch":   "cannot assign %s to %s",
-	"comp.vifDirectiveMustBeBool":     "Invalid expression in v-if: expected a boolean, got %s instead",
-	"comp.velseifDirectiveMustBeBool": "Invalid expression in v-else-if: expected a boolean, got %s instead",
-	"comp.velseDirectiveMustBeBool":   "Invalid expression in v-else: expected a boolean, got %s instead",
+	"comp.SetProp.propNotAllowed":               "invalid property: '%s' is not allowed on '%s",
+	"comp.SetProp.propTypeMismatch":             "invalid property: cannot assign %s to %s on %s",
+	"comp.SetProp.propSetterMustBeOneParameter": "",
+
+	"page.tplMustContainOneRootNode":        "the template must contain one root node.",
+	"page.tplMustContainExactlyOneRootNode": "the template must contain exactly one root node.",
+	"page.undefinedVariable":                "undefined variable: %s",
+	"page.compNotFound":                     "component not found: '%s' is not recognized. check if it is registered or spelled correctly.",
+	"page.cannotResolveComponent":           "failed to resolve component: %s",
+	"page.vifDirectiveMustBeBool":           "invalid expression in v-if: expected a boolean, got %s instead",
+	"page.velseifDirectiveMustBeBool":       "invalid expression in v-else-if: expected a boolean, got %s instead",
+	"page.velseDirectiveMustBeBool":         "invalid expression in v-else: expected a boolean, got %s instead",
 }
 
 func T(msg string) string {

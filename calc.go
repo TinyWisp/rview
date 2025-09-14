@@ -5,6 +5,7 @@ import (
 	"reflect"
 
 	"github.com/TinyWisp/rview/ddl"
+	"github.com/TinyWisp/rview/tperr"
 )
 
 type VarGetter func(name string) (interface{}, error)
@@ -16,84 +17,101 @@ func CalcExp(exp *ddl.Exp, varGetter VarGetter) (*ddl.Exp, error) {
 		}, nil
 	}
 
-	if exp.Type == ddl.ExpVar {
-		return calcVar(exp, varGetter)
-	}
+	res := exp
+	err := error(nil)
 
-	if exp.Type == ddl.ExpFunc {
-		return calcFunc(exp, varGetter)
-	}
+	switch exp.Type {
+	case ddl.ExpVar:
+		res, err = calcVar(exp, varGetter)
 
-	if exp.Type == ddl.ExpCalc {
+	case ddl.ExpFunc:
+		res, err = calcFunc(exp, varGetter)
+
+	case ddl.ExpCalc:
 		left, lerr := CalcExp(exp.Left, varGetter)
 		if lerr != nil {
-			return nil, lerr
+			res = nil
+			err = lerr
+			break
 		}
 
 		right, rerr := CalcExp(exp.Right, varGetter)
 		if rerr != nil {
-			return nil, rerr
+			res = nil
+			err = rerr
+			break
 		}
 
 		switch exp.Operator {
 		case "+":
-			return calcPlus(left, right)
+			res, err = calcPlus(left, right)
 
 		case "-":
-			return calcMinus(left, right)
+			res, err = calcMinus(left, right)
 
 		case "*":
-			return calcTimes(left, right)
+			res, err = calcTimes(left, right)
 
 		case "/":
-			return calcDivision(left, right)
+			res, err = calcDivision(left, right)
 
 		case ">":
-			return calcGreater(left, right)
+			res, err = calcGreater(left, right)
 
 		case ">=":
-			return calcGreaterOrEqual(left, right)
+			res, err = calcGreaterOrEqual(left, right)
 
 		case "<":
-			return calcLess(left, right)
+			res, err = calcLess(left, right)
 
 		case "<=":
-			return calcLessOrEqual(left, right)
+			res, err = calcLessOrEqual(left, right)
 
 		case "==":
-			return calcEqual(left, right)
+			res, err = calcEqual(left, right)
 
 		case "!=":
-			return calcNotEqual(left, right)
+			res, err = calcNotEqual(left, right)
 
 		case "&&":
-			return calcLogicalAnd(left, right)
+			res, err = calcLogicalAnd(left, right)
 
 		case "||":
-			return calcLogicalOr(left, right)
+			res, err = calcLogicalOr(left, right)
 
 		case "!":
-			return calcLogicalNot(left, right)
+			res, err = calcLogicalNot(left, right)
 
 		case "?":
 			condition, terr := CalcExp(exp.TenaryCondition, varGetter)
 			if terr != nil {
-				return nil, terr
+				res = nil
+				err = terr
+			} else {
+				res, err = calcTernaryCondition(condition, left, right)
 			}
-			return calcTernaryCondition(condition, left, right)
 
 		case ".":
-			return calcDot(left, right)
+			res, err = calcDot(left, right)
 
 		case "[":
-			return calcSquareBracket(left, right)
+			res, err = calcSquareBracket(left, right)
 
 		default:
-			return nil, NewTypedError("calc.unsupportedOperator", exp.Operator)
+			res = nil
+			err = tperr.NewTypedError("calc.unsupportedOperator", exp.Operator)
 		}
 	}
 
-	return exp, nil
+	if err != nil {
+		if terr, ok := err.(*tperr.TypedError); ok {
+			err = ddl.NewDdlError("", exp.Pos, terr.GetEtype(), terr.GetVars()...)
+		} else if _, ok := err.(*ddl.DdlError); !ok {
+			err = ddl.NewDdlError("", exp.Pos, err.Error())
+		}
+	}
+
+	return res, err
 }
 
 func calcPlus(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
@@ -125,7 +143,7 @@ func calcPlus(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
 		}, nil
 	}
 
-	return nil, NewTypedError("calc.operandTypeMismatch", "+", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
+	return nil, tperr.NewTypedError("calc.operandTypeMismatch", "+", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
 }
 
 func calcMinus(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
@@ -157,7 +175,7 @@ func calcMinus(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
 		}, nil
 	}
 
-	return nil, NewTypedError("calc.operandTypeMismatch", "-", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
+	return nil, tperr.NewTypedError("calc.operandTypeMismatch", "-", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
 }
 
 func calcTimes(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
@@ -189,7 +207,7 @@ func calcTimes(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
 		}, nil
 	}
 
-	return nil, NewTypedError("calc.operandTypeMismatch", "*", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
+	return nil, tperr.NewTypedError("calc.operandTypeMismatch", "*", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
 }
 
 func calcDivision(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
@@ -221,7 +239,7 @@ func calcDivision(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
 		}, nil
 	}
 
-	return nil, NewTypedError("calc.operandTypeMismatch", "/", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
+	return nil, tperr.NewTypedError("calc.operandTypeMismatch", "/", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
 }
 
 func calcLogicalAnd(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
@@ -232,7 +250,7 @@ func calcLogicalAnd(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
 		}, nil
 	}
 
-	return nil, NewTypedError("calc.operandTypeMismatch", "&&", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
+	return nil, tperr.NewTypedError("calc.operandTypeMismatch", "&&", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
 }
 
 func calcLogicalOr(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
@@ -243,7 +261,7 @@ func calcLogicalOr(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
 		}, nil
 	}
 
-	return nil, NewTypedError("calc.operandTypeMismatch", "||", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
+	return nil, tperr.NewTypedError("calc.operandTypeMismatch", "||", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
 }
 
 func calcLogicalNot(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
@@ -254,7 +272,7 @@ func calcLogicalNot(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
 		}, nil
 	}
 
-	return nil, NewTypedError("calc.operandTypeMismatch", "!", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
+	return nil, tperr.NewTypedError("calc.operandTypeMismatch", "!", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
 }
 
 func calcEqual(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
@@ -322,10 +340,10 @@ func calcEqual(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
 				Bool: reflect.ValueOf(left.Interface).Pointer() == reflect.ValueOf(right.Interface).Pointer(),
 			}, nil
 		}
-		return nil, NewTypedError("calc.operandTypeMismatch", "==", reflect.TypeOf(left.Interface).String(), reflect.TypeOf(right.Interface).String())
+		return nil, tperr.NewTypedError("calc.operandTypeMismatch", "==", reflect.TypeOf(left.Interface).String(), reflect.TypeOf(right.Interface).String())
 	}
 
-	return nil, NewTypedError("calc.operandTypeMismatch", "==", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
+	return nil, tperr.NewTypedError("calc.operandTypeMismatch", "==", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
 }
 
 func calcNotEqual(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
@@ -393,10 +411,10 @@ func calcNotEqual(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
 				Bool: reflect.ValueOf(left.Interface).Pointer() != reflect.ValueOf(right.Interface).Pointer(),
 			}, nil
 		}
-		return nil, NewTypedError("calc.operandTypeMismatch", "!=", reflect.TypeOf(left.Interface).String(), reflect.TypeOf(right.Interface).String())
+		return nil, tperr.NewTypedError("calc.operandTypeMismatch", "!=", reflect.TypeOf(left.Interface).String(), reflect.TypeOf(right.Interface).String())
 	}
 
-	return nil, NewTypedError("calc.operandTypeMismatch", "!=", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
+	return nil, tperr.NewTypedError("calc.operandTypeMismatch", "!=", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
 }
 
 func calcGreater(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
@@ -435,7 +453,7 @@ func calcGreater(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
 		}, nil
 	}
 
-	return nil, NewTypedError("calc.operandTypeMismatch", ">", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
+	return nil, tperr.NewTypedError("calc.operandTypeMismatch", ">", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
 }
 
 func calcGreaterOrEqual(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
@@ -474,7 +492,7 @@ func calcGreaterOrEqual(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
 		}, nil
 	}
 
-	return nil, NewTypedError("calc.operandTypeMismatch", ">", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
+	return nil, tperr.NewTypedError("calc.operandTypeMismatch", ">", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
 }
 
 func calcLess(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
@@ -513,7 +531,7 @@ func calcLess(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
 		}, nil
 	}
 
-	return nil, NewTypedError("calc.operandTypeMismatch", "<", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
+	return nil, tperr.NewTypedError("calc.operandTypeMismatch", "<", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
 }
 
 func calcLessOrEqual(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
@@ -552,16 +570,16 @@ func calcLessOrEqual(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
 		}, nil
 	}
 
-	return nil, NewTypedError("calc.operandTypeMismatch", "<=", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
+	return nil, tperr.NewTypedError("calc.operandTypeMismatch", "<=", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
 }
 
 func calcTernaryCondition(condition *ddl.Exp, left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
 	if condition == nil || condition.Type != ddl.ExpBool {
-		return nil, NewTypedError("calc.invalidTernaryCondition", ddl.ExpTypeName[condition.Type])
+		return nil, tperr.NewTypedError("calc.invalidTernaryCondition", ddl.ExpTypeName[condition.Type])
 	}
 
 	if left.Type != right.Type {
-		return nil, NewTypedError("calc.ternaryDataNotSameType")
+		return nil, tperr.NewTypedError("calc.ternaryDataNotSameType")
 	}
 
 	if condition.Bool {
@@ -573,11 +591,11 @@ func calcTernaryCondition(condition *ddl.Exp, left *ddl.Exp, right *ddl.Exp) (*d
 
 func calcVar(exp *ddl.Exp, varGetter VarGetter) (*ddl.Exp, error) {
 	if exp.Type != ddl.ExpVar {
-		return nil, NewTypedError("calc.expMustBeVarType", `calcVar.exp`)
+		return nil, tperr.NewTypedError("calc.expMustBeVarType", `calcVar.exp`)
 	}
 
 	if exp.Variable == "" {
-		return nil, NewTypedError("calc.emptyVariableName")
+		return nil, tperr.NewTypedError("calc.emptyVariableName")
 	}
 
 	val, err := varGetter(exp.Variable)
@@ -600,11 +618,11 @@ func calcVar(exp *ddl.Exp, varGetter VarGetter) (*ddl.Exp, error) {
 
 func calcFunc(exp *ddl.Exp, varGetter VarGetter) (*ddl.Exp, error) {
 	if exp.Type != ddl.ExpFunc {
-		return nil, NewTypedError("calc.expMustBeFuncType", `calcFunc.exp`)
+		return nil, tperr.NewTypedError("calc.expMustBeFuncType", `calcFunc.exp`)
 	}
 
 	if exp.FuncName == "" {
-		return nil, NewTypedError("calc.emptyFuncName")
+		return nil, tperr.NewTypedError("calc.emptyFuncName")
 	}
 
 	funcVar, err := varGetter(exp.FuncName)
@@ -613,17 +631,17 @@ func calcFunc(exp *ddl.Exp, varGetter VarGetter) (*ddl.Exp, error) {
 	}
 
 	if reflect.TypeOf(funcVar).Kind() != reflect.Func {
-		return nil, NewTypedError("calc.varIsNotFunc", exp.FuncName)
+		return nil, tperr.NewTypedError("calc.varIsNotFunc", exp.FuncName)
 	}
 	theFunc := reflect.ValueOf(funcVar)
 	theFuncType := reflect.TypeOf(funcVar)
 
 	if !theFuncType.IsVariadic() && len(exp.FuncParams) != theFuncType.NumIn() {
-		return nil, NewTypedError("calc.argumentNumberMismatch", exp.FuncName, theFuncType.NumIn(), len(exp.FuncParams))
+		return nil, tperr.NewTypedError("calc.argumentNumberMismatch", exp.FuncName, theFuncType.NumIn(), len(exp.FuncParams))
 	}
 
 	if theFuncType.IsVariadic() && len(exp.FuncParams) != theFuncType.NumIn() {
-		return nil, NewTypedError("calc.argumentNumberNotEnough", exp.FuncName, theFuncType.NumIn()-1, len(exp.FuncParams))
+		return nil, tperr.NewTypedError("calc.argumentNumberNotEnough", exp.FuncName, theFuncType.NumIn()-1, len(exp.FuncParams))
 	}
 
 	theParams := []reflect.Value{}
@@ -718,15 +736,15 @@ func calcDot(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
 		}
 
 		if right.Type != ddl.ExpInterface {
-			return nil, NewTypedError("calc.operandTypeMismatch", ".", leftVal.Type().String(), ddl.ExpTypeName[right.Type])
+			return nil, tperr.NewTypedError("calc.operandTypeMismatch", ".", leftVal.Type().String(), ddl.ExpTypeName[right.Type])
 		}
-		return nil, NewTypedError("calc.operandTypeMismatch", ".", leftVal.Type().String(), reflect.TypeOf(right.Interface).String())
+		return nil, tperr.NewTypedError("calc.operandTypeMismatch", ".", leftVal.Type().String(), reflect.TypeOf(right.Interface).String())
 	}
 
 	if right.Type != ddl.ExpInterface {
-		return nil, NewTypedError("calc.operandTypeMismatch", ".", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
+		return nil, tperr.NewTypedError("calc.operandTypeMismatch", ".", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
 	}
-	return nil, NewTypedError("calc.operandTypeMismatch", ".", ddl.ExpTypeName[left.Type], reflect.TypeOf(right.Interface).Name())
+	return nil, tperr.NewTypedError("calc.operandTypeMismatch", ".", ddl.ExpTypeName[left.Type], reflect.TypeOf(right.Interface).Name())
 }
 
 func calcSquareBracket(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
@@ -787,15 +805,15 @@ func calcSquareBracket(left *ddl.Exp, right *ddl.Exp) (*ddl.Exp, error) {
 		}
 
 		if right.Type != ddl.ExpInterface {
-			return nil, NewTypedError("calc.operandTypeMismatch", "[]", leftVal.Type().Name(), ddl.ExpTypeName[right.Type])
+			return nil, tperr.NewTypedError("calc.operandTypeMismatch", "[]", leftVal.Type().Name(), ddl.ExpTypeName[right.Type])
 		}
-		return nil, NewTypedError("calc.operandTypeMismatch", "[]", leftVal.Type().Name(), reflect.TypeOf(right.Interface).Name())
+		return nil, tperr.NewTypedError("calc.operandTypeMismatch", "[]", leftVal.Type().Name(), reflect.TypeOf(right.Interface).Name())
 	}
 
 	if right.Type != ddl.ExpInterface {
-		return nil, NewTypedError("calc.operandTypeMismatch", "[]", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
+		return nil, tperr.NewTypedError("calc.operandTypeMismatch", "[]", ddl.ExpTypeName[left.Type], ddl.ExpTypeName[right.Type])
 	}
-	return nil, NewTypedError("calc.operandTypeMismatch", "[]", ddl.ExpTypeName[left.Type], reflect.TypeOf(right.Interface).Name())
+	return nil, tperr.NewTypedError("calc.operandTypeMismatch", "[]", ddl.ExpTypeName[left.Type], reflect.TypeOf(right.Interface).Name())
 }
 
 func ConvertVariableToExp(variable interface{}) (*ddl.Exp, error) {
@@ -896,12 +914,4 @@ func ConvertVariableToExp(variable interface{}) (*ddl.Exp, error) {
 			Interface: v,
 		}, nil
 	}
-}
-
-func handleErr(exp *ddl.Exp, err error) (*ddl.Exp, error) {
-	if err == nil {
-		return exp, nil
-	}
-
-	return nil, nil
 }

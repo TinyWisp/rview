@@ -25,6 +25,7 @@ type Box struct {
 func CreateBox() Component {
 	return &Box{
 		Base[*tview.Box]{
+			name: "box",
 			inst: tview.NewBox(),
 		},
 	}

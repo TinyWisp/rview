@@ -503,6 +503,7 @@ func calculate(opndStack []*Exp, optrStack []*Exp) ([]*Exp, []*Exp, error) {
 			Operator: "-",
 			Left:     nil,
 			Right:    oexp,
+			Pos:      optr.Pos,
 		}
 		opndStack[len(opndStack)-1] = nexp
 		optrStack = optrStack[:len(optrStack)-1]
@@ -517,6 +518,7 @@ func calculate(opndStack []*Exp, optrStack []*Exp) ([]*Exp, []*Exp, error) {
 			Operator: "!",
 			Left:     nil,
 			Right:    oexp,
+			Pos:      optr.Pos,
 		}
 		opndStack[len(opndStack)-1] = nexp
 		optrStack = optrStack[:len(optrStack)-1]
@@ -536,6 +538,7 @@ func calculate(opndStack []*Exp, optrStack []*Exp) ([]*Exp, []*Exp, error) {
 			TenaryCondition: exp2,
 			Left:            exp1.Left,
 			Right:           exp1.Right,
+			Pos:             optr.Pos,
 		}
 		opndStack = opndStack[:len(opndStack)-2]
 		opndStack = append(opndStack, nexp)
@@ -552,6 +555,7 @@ func calculate(opndStack []*Exp, optrStack []*Exp) ([]*Exp, []*Exp, error) {
 			Operator: optr.Operator,
 			Left:     exp2,
 			Right:    exp1,
+			Pos:      optr.Pos,
 		}
 		opndStack = opndStack[:len(opndStack)-2]
 		opndStack = append(opndStack, nexp)
@@ -562,6 +566,10 @@ func calculate(opndStack []*Exp, optrStack []*Exp) ([]*Exp, []*Exp, error) {
 }
 
 func ParseExp(str string) (*Exp, error) {
+	if trim(str) == "" {
+		return nil, nil
+	}
+
 	exps, err := readExp(str)
 	if err != nil {
 		return nil, err
@@ -674,5 +682,13 @@ func (a *Exp) Equal(b *Exp) bool {
 }
 
 func (e *Exp) TypeName() string {
+	return ExpTypeName[e.Type]
+}
+
+func (e *Exp) ActualTypeName() string {
+	if e.Type == ExpInterface {
+		return reflect.TypeOf(e.Interface).Name()
+	}
+
 	return ExpTypeName[e.Type]
 }

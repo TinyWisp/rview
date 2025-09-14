@@ -36,6 +36,7 @@ func CreateFlex() Component {
 	return &Flex{
 		Base[*tview.Flex]{
 			inst: tview.NewFlex(),
+			name: "flex",
 		},
 	}
 }

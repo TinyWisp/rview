@@ -3,6 +3,8 @@ package rview
 import (
 	"fmt"
 	"testing"
+
+	"github.com/TinyWisp/rview/tperr"
 )
 
 func TestIsStructFieldExported(t *testing.T) {
@@ -74,54 +76,54 @@ func TestSetStructField(t *testing.T) {
 	}
 
 	err = SetStructField(test, "IntVar", "hello")
-	if err == nil || !IsErrorType(err, "util.SetStructField.typeMismatch") {
+	if err == nil || !tperr.IsErrorType(err, "util.SetStructField.typeMismatch") {
 		fmt.Println(err)
 		t.Fatalf("util.SetStructField, invalid assignment, str -> int")
 	}
 
 	err = SetStructField(test, "IntVar", true)
-	if err == nil || !IsErrorType(err, "util.SetStructField.typeMismatch") {
+	if err == nil || !tperr.IsErrorType(err, "util.SetStructField.typeMismatch") {
 		t.Fatalf("util.SetStructField, invalid assignment, bool -> int")
 	}
 
 	err = SetStructField(test, "IntVar", &tmpIntVar)
-	if err == nil || !IsErrorType(err, "util.SetStructField.typeMismatch") {
+	if err == nil || !tperr.IsErrorType(err, "util.SetStructField.typeMismatch") {
 		t.Fatalf("util.SetStructField, invalid assignment, *int -> int")
 	}
 
 	tmpStruct := TinyStruct1{a: 1}
 	err = SetStructField(test, "IntVar", tmpStruct)
-	if err == nil || !IsErrorType(err, "util.SetStructField.typeMismatch") {
+	if err == nil || !tperr.IsErrorType(err, "util.SetStructField.typeMismatch") {
 		t.Fatalf("util.SetStructField, invalid assignment, struct -> int")
 	}
 
 	err = SetStructField(test, "PIntVar", &tmpStruct)
-	if err == nil || !IsErrorType(err, "util.SetStructField.typeMismatch") {
+	if err == nil || !tperr.IsErrorType(err, "util.SetStructField.typeMismatch") {
 		t.Fatalf("util.SetStructField, invalid assignment, *struct -> *int")
 	}
 
 	err = SetStructField(test, "StructVar", TinyStruct2{})
-	if err == nil || !IsErrorType(err, "util.SetStructField.typeMismatch") {
+	if err == nil || !tperr.IsErrorType(err, "util.SetStructField.typeMismatch") {
 		t.Fatalf("util.SetStructField, invalid assignment, struct1 -> struct2")
 	}
 
 	err = SetStructField(test, "PStructVar", &TinyStruct2{})
-	if err == nil || !IsErrorType(err, "util.SetStructField.typeMismatch") {
+	if err == nil || !tperr.IsErrorType(err, "util.SetStructField.typeMismatch") {
 		t.Fatalf("util.SetStructField, invalid assignment, *struct1 -> *struct2")
 	}
 
 	err = SetStructField(test, "Abcd", "123")
-	if err == nil || !IsErrorType(err, "util.SetStructField.fieldNotExist") {
+	if err == nil || !tperr.IsErrorType(err, "util.SetStructField.fieldNotExist") {
 		t.Fatalf("util.SetStructField, not exist field")
 	}
 
 	err = SetStructField(test, "Abcd", "123")
-	if err == nil || !IsErrorType(err, "util.SetStructField.fieldNotExist") {
+	if err == nil || !tperr.IsErrorType(err, "util.SetStructField.fieldNotExist") {
 		t.Fatalf("util.SetStructField, not exist field")
 	}
 
 	err = SetStructField(test, "unexported", 123)
-	if err == nil || !IsErrorType(err, "util.SetStructField.unexportedField") {
+	if err == nil || !tperr.IsErrorType(err, "util.SetStructField.unexportedField") {
 		fmt.Println(err)
 		t.Fatalf("util.SetStructField, unexported field")
 	}
@@ -179,12 +181,43 @@ func TestGetStructField(t *testing.T) {
 	}
 
 	_, err = GetStructField(test, "abcd")
-	if err == nil || !IsErrorType(err, "util.GetStructField.fieldNotExist") {
+	if err == nil || !tperr.IsErrorType(err, "util.GetStructField.fieldNotExist") {
 		t.Fatalf("util.GetStructField, field not exist")
 	}
 
 	_, err = GetStructField(test, "unexported")
-	if err == nil || !IsErrorType(err, "util.GetStructField.unexportedField") {
+	if err == nil || !tperr.IsErrorType(err, "util.GetStructField.unavailableField") {
+		t.Fatalf("util.GetStructField, unexported field")
+	}
+
+	test2 := TestStruct{
+		IntVar:  3,
+		PIntVar: &tmpIntVar,
+		RIntVar: NewRef(9),
+	}
+
+	intVar, err = GetStructField(test2, "IntVar")
+	if err != nil || intVar.(int) != 3 {
+		t.Fatalf("util.GetStructField, int")
+	}
+
+	pintVar, err2 = GetStructField(test2, "PIntVar")
+	if err2 != nil || *(pintVar.(*int)) != 6 {
+		t.Fatalf("util.GetStructField, *int")
+	}
+
+	intVar, err = GetStructField(test2, "RIntVar")
+	if err != nil || intVar.(int) != 9 {
+		t.Fatalf("util.GetStructField, *Ref[int]")
+	}
+
+	_, err = GetStructField(test2, "abcd")
+	if err == nil || !tperr.IsErrorType(err, "util.GetStructField.fieldNotExist") {
+		t.Fatalf("util.GetStructField, field not exist")
+	}
+
+	_, err = GetStructField(test2, "unexported")
+	if err == nil || !tperr.IsErrorType(err, "util.GetStructField.unavailableField") {
 		t.Fatalf("util.GetStructField, unexported field")
 	}
 }

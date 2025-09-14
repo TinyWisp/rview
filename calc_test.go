@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/TinyWisp/rview/ddl"
+	"github.com/TinyWisp/rview/tperr"
 	"github.com/davecgh/go-spew/spew"
 )
 
@@ -863,38 +864,49 @@ func TestCalcExp(t *testing.T) {
 
 		res, err2 := CalcExp(exp, getVariable)
 		if err2 != nil {
-			if fmtErr, ok := err2.(*TypedError); ok {
-				if fmtErr.etype != testCase.err {
-					t.Log(err2)
+			if derr, ok := err2.(*ddl.DdlError); ok {
+				derr.SetDdl(testCase.exp)
+				t.Log(err2)
+				if !derr.Is(testCase.err) {
 					t.Fatal("the error occured during the executing of this expression is not as expected. ")
 				}
 				continue
-			}
-		}
-
-		expect, err3 := ddl.ParseExp(testCase.expect)
-		if err3 != nil {
-			t.Fatal(err3)
-		}
-
-		if expect.Type == ddl.ExpCalc && expect.Operator == "-" {
-			if expect.Right.Type == ddl.ExpInt {
-				expect = &ddl.Exp{
-					Type: ddl.ExpInt,
-					Int:  -expect.Right.Int,
-				}
-			} else if expect.Right.Type == ddl.ExpFloat {
-				expect = &ddl.Exp{
-					Type:  ddl.ExpFloat,
-					Float: -expect.Right.Float,
+			} else if terr, ok := err2.(*tperr.TypedError); ok {
+				if !terr.Is(testCase.exp) {
+					t.Fatal("the error occured during the executing of this expression is not as expected. ")
 				}
 			}
 		}
 
-		if !expect.Equal(res) {
-			spew.Dump(expect)
-			spew.Dump(res)
-			t.Fatal("this expression is not calculated as expected")
+		if testCase.err != "" && err2 == nil {
+			t.Fatalf("expected error not raised.")
+		}
+
+		if testCase.err == "" && testCase.expect != "" {
+			expect, err3 := ddl.ParseExp(testCase.expect)
+			if err3 != nil {
+				t.Fatal(err3)
+			}
+
+			if expect.Type == ddl.ExpCalc && expect.Operator == "-" {
+				if expect.Right.Type == ddl.ExpInt {
+					expect = &ddl.Exp{
+						Type: ddl.ExpInt,
+						Int:  -expect.Right.Int,
+					}
+				} else if expect.Right.Type == ddl.ExpFloat {
+					expect = &ddl.Exp{
+						Type:  ddl.ExpFloat,
+						Float: -expect.Right.Float,
+					}
+				}
+			}
+
+			if !expect.Equal(res) {
+				spew.Dump(expect)
+				spew.Dump(res)
+				t.Fatal("this expression is not calculated as expected")
+			}
 		}
 	}
 }

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/TinyWisp/rview/i18n"
+	"github.com/TinyWisp/rview/tperr"
 )
 
 type DdlError struct {
@@ -26,7 +26,7 @@ func NewDdlError(ddl string, pos int, etype string, vars ...any) *DdlError {
 func (de *DdlError) Error() string {
 	msg := ""
 
-	msg = fmt.Sprintf(i18n.T(de.etype), de.vars...) + "\n"
+	msg = fmt.Sprintf(tperr.T(de.etype), de.vars...) + "\n"
 
 	if de.pos < 0 || de.ddl == "" {
 		return msg
@@ -60,8 +60,8 @@ func (de *DdlError) Error() string {
 		msg += lines[idx] + "\n"
 	}
 
-	fmt.Printf("errRow:%d, errCol:%d, beginLine:%d, endLine:%d\n", errRow, errCol, beginLine, len(lines)-1)
-	fmt.Println(lines)
+	//fmt.Printf("errRow:%d, errCol:%d, beginLine:%d, endLine:%d\n", errRow, errCol, beginLine, len(lines)-1)
+	//fmt.Println(lines)
 
 	return msg
 }
@@ -76,6 +76,10 @@ func (de *DdlError) SetDdl(ddl string) {
 
 func (de *DdlError) SetPos(pos int) {
 	de.pos = pos
+}
+
+func (de *DdlError) Is(etype string) bool {
+	return etype == de.etype
 }
 
 func (de *DdlError) IsExpError() bool {
