@@ -98,6 +98,7 @@ func sprintComponentNode(node *ComponentNode, level int) string {
 	str += fmt.Sprintln(spaces, "HasElseIf: ", node.HasElseIf)
 	str += fmt.Sprintln(spaces, "ElseIf: ", node.ElseIf)
 	str += fmt.Sprintln(spaces, "HasElse: ", node.HasElse)
+	str += fmt.Sprintln(spaces, "Else: ", node.Else)
 	str += fmt.Sprintln(spaces, "HasFor: ", node.HasFor)
 	str += fmt.Sprintln(spaces, "Ignore: ", node.Ignore)
 	str += fmt.Sprintln(spaces, "InheritVars: ", node.InheritVars)

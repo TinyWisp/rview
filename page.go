@@ -106,9 +106,9 @@ func (p *Page) createCompNode(tplNode *ddl.TplNode, parent *ComponentNode) ([]*C
 	// v-if
 	if tplNode.If != nil {
 		compNode.HasIf = true
-		fmt.Println("dddddddddddddddd")
+		fmt.Println("kkkkkkkkkkkkkkkkk")
 		res, err := CalcExp(tplNode.If.Exp, getParentVariable)
-		fmt.Println("eeeeeeeeeeeeeee")
+		fmt.Println("llllllllllllll")
 		if err != nil {
 			return empty, err
 		}
@@ -122,11 +122,11 @@ func (p *Page) createCompNode(tplNode *ddl.TplNode, parent *ComponentNode) ([]*C
 	} else if tplNode.ElseIf != nil {
 		compNode.HasElseIf = true
 		if tplNode.Idx == 0 {
-			return empty, ddl.NewDdlError(p.Tpl, tplNode.Pos, "page.noCorrespondingIf")
+			return empty, ddl.NewDdlError(p.Tpl, tplNode.Pos, "page.velseifHasNoCorrespondingIf")
 		}
 		prevCompNode := parent.Children[len(parent.Children)-1]
 		if !prevCompNode.HasIf && !prevCompNode.HasElseIf {
-			return empty, ddl.NewDdlError(p.Tpl, tplNode.Pos, "page.noCorrespondingIf")
+			return empty, ddl.NewDdlError(p.Tpl, tplNode.Pos, "page.velseifHasNoCorrespondingIf")
 		}
 		if (prevCompNode.HasIf && prevCompNode.If) || (prevCompNode.HasElseIf && prevCompNode.ElseIf) {
 			compNode.ElseIf = false
@@ -147,16 +147,16 @@ func (p *Page) createCompNode(tplNode *ddl.TplNode, parent *ComponentNode) ([]*C
 	} else if tplNode.Else != nil {
 		compNode.HasElse = true
 		if tplNode.Idx == 0 {
-			return empty, ddl.NewDdlError(p.Tpl, tplNode.Pos, "page.noCorrespondingIf")
+			return empty, ddl.NewDdlError(p.Tpl, tplNode.Pos, "page.velseHasNoCorrespondingIf")
 		}
 		prevCompNode := parent.Children[len(parent.Children)-1]
 		if !prevCompNode.HasIf && !prevCompNode.HasElseIf {
-			return empty, ddl.NewDdlError(p.Tpl, tplNode.Pos, "page.noCorrespondingIf")
+			return empty, ddl.NewDdlError(p.Tpl, tplNode.Pos, "page.velseHasNoCorrespondingIf")
 		}
 		if (prevCompNode.HasIf && prevCompNode.If) || (prevCompNode.HasElseIf && prevCompNode.ElseIf) {
 			compNode.Else = false
 			compNode.Ignore = true
-			return empty, nil
+			return []*ComponentNode{compNode}, nil
 		}
 		compNode.Else = true
 		compNode.Ignore = false
@@ -247,7 +247,7 @@ func NewPage(def interface{}) (*Page, error) {
 	// Tpl
 	itpl, err := GetStructField(p.def, "Tpl")
 	if err != nil {
-		return nil, err
+		return nil, tperr.NewTypedError("page.tplFieldIsRequired")
 	}
 	tpl, ok := itpl.(string)
 	if !ok {
@@ -270,6 +270,8 @@ func NewPage(def interface{}) (*Page, error) {
 	icomponents, err := GetStructField(p.def, "Components")
 	p.TagCompCreatorMap = map[string]func() comp.Component{
 		"box":      comp.CreateBox,
+		"button":   comp.CreateButton,
+		"textarea": comp.CreateTextArea,
 		"flex":     comp.CreateFlex,
 		"template": comp.CreateTemplate,
 	}
@@ -288,8 +290,17 @@ func NewPage(def interface{}) (*Page, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(nodes[0].Children) == 0 {
-		return nil, tperr.NewTypedError("page.tplMustContainOneNode")
+	validRootNodeCount := 0
+	for _, cnode := range nodes[0].Children {
+		if !cnode.Ignore {
+			validRootNodeCount += 1
+		}
+	}
+	if validRootNodeCount == 0 {
+		return nil, tperr.NewTypedError("page.tplMustContainOneRootNode")
+	}
+	if validRootNodeCount > 1 {
+		return nil, tperr.NewTypedError("page.tplMustContainExactlyOneRootNode")
 	}
 	p.root = nodes[0]
 

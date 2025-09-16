@@ -55,6 +55,7 @@ var msgMap = map[string]string{
 	"comp.SetProp.propTypeMismatch":             "invalid property: cannot assign %s to %s on %s",
 	"comp.SetProp.propSetterMustBeOneParameter": "",
 
+	"page.tplFieldIsRequired":               "the Tpl field is required.",
 	"page.tplMustContainOneRootNode":        "the template must contain one root node.",
 	"page.tplMustContainExactlyOneRootNode": "the template must contain exactly one root node.",
 	"page.undefinedVariable":                "undefined variable: %s",
@@ -63,6 +64,8 @@ var msgMap = map[string]string{
 	"page.vifDirectiveMustBeBool":           "invalid expression in v-if: expected a boolean, got %s instead",
 	"page.velseifDirectiveMustBeBool":       "invalid expression in v-else-if: expected a boolean, got %s instead",
 	"page.velseDirectiveMustBeBool":         "invalid expression in v-else: expected a boolean, got %s instead",
+	"page.velseHasNoCorrespondingIf":        "v-else directive requires a preceding v-if sibling. No matching v-if found.",
+	"page.velseifHasNoCorrespondingIf":      "v-else-if directive requires a preceding v-if sibling. No matching v-if found.",
 }
 
 func T(msg string) string {

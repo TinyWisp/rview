@@ -47,6 +47,14 @@ var (
 			err: "tpl.mismatchedSingleQuotationMark",
 		},
 		{
+			str: `<div key='hello' </div>`,
+			err: "tpl.unexpectedToken",
+		},
+		{
+			str: "<div \n key='hello' \n </div>",
+			err: "tpl.unexpectedToken",
+		},
+		{
 			str: `<div key1='hello' key1="abcd"></div>`,
 			err: "tpl.duplicateAttribute",
 		},
@@ -214,6 +222,80 @@ var (
 			str: `
 			<template>
 				<comp-a attr1="val1" attr2="val2"/>
+			</template>`,
+			tpl: []*TplNode{
+				{
+					Type:    TplNodeTag,
+					TagName: "template",
+					Idx:     0,
+					Children: []*TplNode{
+						{
+							Type:    TplNodeTag,
+							TagName: "comp-a",
+							Idx:     0,
+							Attrs: map[string]*TplAttr{
+								"attr1": {
+									Exp: &Exp{
+										Type: ExpStr,
+										Str:  "val1",
+									},
+								},
+								"attr2": {
+									Exp: &Exp{
+										Type: ExpStr,
+										Str:  "val2",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			str: `
+			<template>
+				<comp-a
+					attr1="val1"
+					attr2="val2"
+				/>
+			</template>`,
+			tpl: []*TplNode{
+				{
+					Type:    TplNodeTag,
+					TagName: "template",
+					Idx:     0,
+					Children: []*TplNode{
+						{
+							Type:    TplNodeTag,
+							TagName: "comp-a",
+							Idx:     0,
+							Attrs: map[string]*TplAttr{
+								"attr1": {
+									Exp: &Exp{
+										Type: ExpStr,
+										Str:  "val1",
+									},
+								},
+								"attr2": {
+									Exp: &Exp{
+										Type: ExpStr,
+										Str:  "val2",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			str: `
+			<template>
+				<comp-a
+					attr1="val1"
+					attr2="val2"
+				></comp-a>
 			</template>`,
 			tpl: []*TplNode{
 				{

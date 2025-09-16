@@ -82,107 +82,105 @@ type CreateNodeTestCase struct {
 }
 
 var createNodeTestCases []CreateNodeTestCase = []CreateNodeTestCase{
-	/*
-		{
-			tpl: "<template></template>",
-			err: "page.tplMustContainOneNode",
-		},
-		{
-			tpl: "<template><flex></flex></template>",
-			expect: &ComponentNode{
-				Comp:        comp.CreateTemplate(),
-				Parent:      nil,
-				InheritVars: true,
-				Children: []*ComponentNode{
-					{
-						Comp:        comp.CreateFlex(),
-						InheritVars: true,
-					},
+	{
+		tpl: "<template></template>",
+		err: "page.tplMustContainOneRootNode",
+	},
+	{
+		tpl: "<template><flex></flex></template>",
+		expect: &ComponentNode{
+			Comp:        comp.CreateTemplate(),
+			Parent:      nil,
+			InheritVars: true,
+			Children: []*ComponentNode{
+				{
+					Comp:        comp.CreateFlex(),
+					InheritVars: true,
 				},
 			},
 		},
-		{
-			tpl: "<template><flex/></template>",
-			expect: &ComponentNode{
-				Comp:        comp.CreateTemplate(),
-				Parent:      nil,
-				InheritVars: true,
-				Children: []*ComponentNode{
-					{
-						Comp:        comp.CreateFlex(),
-						InheritVars: true,
-					},
+	},
+	{
+		tpl: "<template><flex/></template>",
+		expect: &ComponentNode{
+			Comp:        comp.CreateTemplate(),
+			Parent:      nil,
+			InheritVars: true,
+			Children: []*ComponentNode{
+				{
+					Comp:        comp.CreateFlex(),
+					InheritVars: true,
 				},
 			},
 		},
-		{
-			tpl: `<template>
-						<flex>
-							<box v-if="3>1" />
-						</flex>
-					</template>`,
-			expect: &ComponentNode{
-				Comp:        comp.CreateTemplate(),
-				Parent:      nil,
-				InheritVars: true,
-				Children: []*ComponentNode{
-					{
-						Comp:        comp.CreateFlex(),
-						InheritVars: true,
-						Children: []*ComponentNode{
-							{
-								Comp:        comp.CreateBox(),
-								InheritVars: true,
-								HasIf:       true,
-								If:          true,
-							},
-						},
-					},
-				},
-			},
-		},
-		{
-			tpl: `<template>
-					<flex>
-						<box v-if="false" />
-					</flex>
-				</template>`,
-			expect: &ComponentNode{
-				Comp:        comp.CreateTemplate(),
-				Parent:      nil,
-				InheritVars: true,
-				Children: []*ComponentNode{
-					{
-						Comp:        comp.CreateFlex(),
-						InheritVars: true,
-						Children: []*ComponentNode{
-							{
-								Comp:        nil,
-								InheritVars: true,
-								Ignore:      true,
-								HasIf:       true,
-								If:          false,
-							},
-						},
-					},
-				},
-			},
-		},
-	*/
+	},
 	{
 		tpl: `<template>
-			<flex>
-				<box v-if="int8var2 > 0" />
-			</flex>
-		</template>`,
+							<flex>
+								<box v-if="3>1" />
+							</flex>
+						</template>`,
+		expect: &ComponentNode{
+			Comp:        comp.CreateTemplate(),
+			Parent:      nil,
+			InheritVars: true,
+			Children: []*ComponentNode{
+				{
+					Comp:        comp.CreateFlex(),
+					InheritVars: true,
+					Children: []*ComponentNode{
+						{
+							Comp:        comp.CreateBox(),
+							InheritVars: true,
+							HasIf:       true,
+							If:          true,
+						},
+					},
+				},
+			},
+		},
+	},
+	{
+		tpl: `<template>
+						<flex>
+							<box v-if="false" />
+						</flex>
+					</template>`,
+		expect: &ComponentNode{
+			Comp:        comp.CreateTemplate(),
+			Parent:      nil,
+			InheritVars: true,
+			Children: []*ComponentNode{
+				{
+					Comp:        comp.CreateFlex(),
+					InheritVars: true,
+					Children: []*ComponentNode{
+						{
+							Comp:        nil,
+							InheritVars: true,
+							Ignore:      true,
+							HasIf:       true,
+							If:          false,
+						},
+					},
+				},
+			},
+		},
+	},
+	{
+		tpl: `<template>
+				<flex>
+					<box v-if="int8var2 > 0" />
+				</flex>
+			</template>`,
 		err: "page.undefinedVariable",
 	},
 	{
 		tpl: `<template>
-			<flex>
-				<box v-if="Int8Var2 > 0" />
-			</flex>
-		</template>`,
+				<flex>
+					<box v-if="Int8Var2 > 0" />
+				</flex>
+			</template>`,
 		expect: &ComponentNode{
 			Comp:        comp.CreateTemplate(),
 			Parent:      nil,
@@ -206,10 +204,46 @@ var createNodeTestCases []CreateNodeTestCase = []CreateNodeTestCase{
 	},
 	{
 		tpl: `<template>
-			<flex>
-				<box v-if="Int8Var2 > 0" />
-			</flex>
-		</template>`,
+				<flex>
+					<box v-if="Int8Var2 < 0" />
+					<box v-else />
+				</flex>
+			</template>`,
+		expect: &ComponentNode{
+			Comp:        comp.CreateTemplate(),
+			Parent:      nil,
+			InheritVars: true,
+			Children: []*ComponentNode{
+				{
+					Comp:        comp.CreateFlex(),
+					InheritVars: true,
+					Children: []*ComponentNode{
+						{
+							Comp:        nil,
+							InheritVars: true,
+							Ignore:      true,
+							HasIf:       true,
+							If:          false,
+						},
+						{
+							Comp:        comp.CreateBox(),
+							InheritVars: true,
+							Ignore:      false,
+							HasElse:     true,
+							Else:        true,
+						},
+					},
+				},
+			},
+		},
+	},
+	{
+		tpl: `<template>
+				<flex>
+					<box v-if="Int8Var2 > 0" />
+					<button v-else />
+				</flex>
+			</template>`,
 		expect: &ComponentNode{
 			Comp:        comp.CreateTemplate(),
 			Parent:      nil,
@@ -226,7 +260,536 @@ var createNodeTestCases []CreateNodeTestCase = []CreateNodeTestCase{
 							HasIf:       true,
 							If:          true,
 						},
+						{
+							Comp:        nil,
+							InheritVars: true,
+							Ignore:      true,
+							HasElse:     true,
+							Else:        false,
+						},
 					},
+				},
+			},
+		},
+	},
+	{
+		tpl: `<template>
+				<flex>
+					<box v-if="Int8Var2 < 0" />
+					<button v-else-if="Int64Var2 == 2" />
+				</flex>
+			</template>`,
+		expect: &ComponentNode{
+			Comp:        comp.CreateTemplate(),
+			Parent:      nil,
+			InheritVars: true,
+			Children: []*ComponentNode{
+				{
+					Comp:        comp.CreateFlex(),
+					InheritVars: true,
+					Children: []*ComponentNode{
+						{
+							Comp:        nil,
+							InheritVars: true,
+							Ignore:      true,
+							HasIf:       true,
+							If:          false,
+						},
+						{
+							Comp:        comp.CreateButton(),
+							InheritVars: true,
+							Ignore:      false,
+							HasElseIf:   true,
+							ElseIf:      true,
+						},
+					},
+				},
+			},
+		},
+	},
+	{
+		tpl: `<template>
+				<flex>
+					<box v-if="Int8Var2 < 0" />
+					<button v-else-if="Int64Var2 == 0" />
+				</flex>
+			</template>`,
+		expect: &ComponentNode{
+			Comp:        comp.CreateTemplate(),
+			Parent:      nil,
+			InheritVars: true,
+			Children: []*ComponentNode{
+				{
+					Comp:        comp.CreateFlex(),
+					InheritVars: true,
+					Children: []*ComponentNode{
+						{
+							Comp:        nil,
+							InheritVars: true,
+							Ignore:      true,
+							HasIf:       true,
+							If:          false,
+						},
+						{
+							Comp:        nil,
+							InheritVars: true,
+							Ignore:      true,
+							HasElseIf:   true,
+							ElseIf:      false,
+						},
+					},
+				},
+			},
+		},
+	},
+	{
+		tpl: `<template>
+				<flex>
+					<box v-if="Int8Var2 < 0" />
+					<button v-else-if="Int64Var2 == 1" />
+					<textarea v-else-if="StringVarHello == 'hello'" />
+				</flex>
+			</template>`,
+		expect: &ComponentNode{
+			Comp:        comp.CreateTemplate(),
+			Parent:      nil,
+			InheritVars: true,
+			Children: []*ComponentNode{
+				{
+					Comp:        comp.CreateFlex(),
+					InheritVars: true,
+					Children: []*ComponentNode{
+						{
+							Comp:        nil,
+							InheritVars: true,
+							Ignore:      true,
+							HasIf:       true,
+							If:          false,
+						},
+						{
+							Comp:        nil,
+							InheritVars: true,
+							Ignore:      true,
+							HasElseIf:   true,
+							ElseIf:      false,
+						},
+						{
+							Comp:        comp.CreateTextArea(),
+							InheritVars: true,
+							Ignore:      false,
+							HasElseIf:   true,
+							ElseIf:      true,
+						},
+					},
+				},
+			},
+		},
+	},
+	{
+		tpl: `<template>
+				<flex>
+					<box v-if="Int8Var2 < 0" />
+					<button v-else-if="Int64Var2 == 1" />
+					<textarea v-else-if="StringVarHello == 'abcd'" />
+				</flex>
+			</template>`,
+		expect: &ComponentNode{
+			Comp:        comp.CreateTemplate(),
+			Parent:      nil,
+			InheritVars: true,
+			Children: []*ComponentNode{
+				{
+					Comp:        comp.CreateFlex(),
+					InheritVars: true,
+					Children: []*ComponentNode{
+						{
+							Comp:        nil,
+							InheritVars: true,
+							Ignore:      true,
+							HasIf:       true,
+							If:          false,
+						},
+						{
+							Comp:        nil,
+							InheritVars: true,
+							Ignore:      true,
+							HasElseIf:   true,
+							ElseIf:      false,
+						},
+						{
+							Comp:        nil,
+							InheritVars: true,
+							Ignore:      true,
+							HasElseIf:   true,
+							ElseIf:      false,
+						},
+					},
+				},
+			},
+		},
+	},
+	{
+		tpl: `<template>
+				<flex>
+					<box v-if="Int8Var2 < 0" />
+					<button v-else-if="Int64Var2 == 1" />
+					<textarea v-else-if="StringVarHello == 'abcd'" />
+					<box v-else />
+				</flex>
+			</template>`,
+		expect: &ComponentNode{
+			Comp:        comp.CreateTemplate(),
+			Parent:      nil,
+			InheritVars: true,
+			Children: []*ComponentNode{
+				{
+					Comp:        comp.CreateFlex(),
+					InheritVars: true,
+					Children: []*ComponentNode{
+						{
+							Comp:        nil,
+							InheritVars: true,
+							Ignore:      true,
+							HasIf:       true,
+							If:          false,
+						},
+						{
+							Comp:        nil,
+							InheritVars: true,
+							Ignore:      true,
+							HasElseIf:   true,
+							ElseIf:      false,
+						},
+						{
+							Comp:        nil,
+							InheritVars: true,
+							Ignore:      true,
+							HasElseIf:   true,
+							ElseIf:      false,
+						},
+						{
+							Comp:        comp.CreateBox(),
+							InheritVars: true,
+							Ignore:      false,
+							HasElse:     true,
+							Else:        true,
+						},
+					},
+				},
+			},
+		},
+	},
+	{
+		tpl: `<template>
+				<flex>
+					<box v-if="Int8Var2 < 0" />
+					<button v-if="Int64Var2 == 1" />
+				</flex>
+			</template>`,
+		expect: &ComponentNode{
+			Comp:        comp.CreateTemplate(),
+			Parent:      nil,
+			InheritVars: true,
+			Children: []*ComponentNode{
+				{
+					Comp:        comp.CreateFlex(),
+					InheritVars: true,
+					Children: []*ComponentNode{
+						{
+							Comp:        nil,
+							InheritVars: true,
+							Ignore:      true,
+							HasIf:       true,
+							If:          false,
+						},
+						{
+							Comp:        nil,
+							InheritVars: true,
+							Ignore:      true,
+							HasIf:       true,
+							If:          false,
+						},
+					},
+				},
+			},
+		},
+	},
+	{
+		tpl: `<template>
+				<flex>
+					<box v-if="Int8Var2 == 2" />
+					<button v-if="Int64Var2 == 2" />
+				</flex>
+			</template>`,
+		expect: &ComponentNode{
+			Comp:        comp.CreateTemplate(),
+			Parent:      nil,
+			InheritVars: true,
+			Children: []*ComponentNode{
+				{
+					Comp:        comp.CreateFlex(),
+					InheritVars: true,
+					Children: []*ComponentNode{
+						{
+							Comp:        comp.CreateBox(),
+							InheritVars: true,
+							Ignore:      false,
+							HasIf:       true,
+							If:          true,
+						},
+						{
+							Comp:        comp.CreateButton(),
+							InheritVars: true,
+							Ignore:      false,
+							HasIf:       true,
+							If:          true,
+						},
+					},
+				},
+			},
+		},
+	},
+	{
+		tpl: `<template>
+				<flex>
+					<box v-if="Int8Var2 < 0" />
+					<button v-else-if="Int64Var2 == 1" />
+					<textarea v-if="StringVarHello == 'abcd'" />
+					<box v-else />
+				</flex>
+			</template>`,
+		expect: &ComponentNode{
+			Comp:        comp.CreateTemplate(),
+			Parent:      nil,
+			InheritVars: true,
+			Children: []*ComponentNode{
+				{
+					Comp:        comp.CreateFlex(),
+					InheritVars: true,
+					Children: []*ComponentNode{
+						{
+							Comp:        nil,
+							InheritVars: true,
+							Ignore:      true,
+							HasIf:       true,
+							If:          false,
+						},
+						{
+							Comp:        nil,
+							InheritVars: true,
+							Ignore:      true,
+							HasElseIf:   true,
+							ElseIf:      false,
+						},
+						{
+							Comp:        nil,
+							InheritVars: true,
+							Ignore:      true,
+							HasIf:       true,
+							If:          false,
+						},
+						{
+							Comp:        comp.CreateBox(),
+							InheritVars: true,
+							Ignore:      false,
+							HasElse:     true,
+							Else:        true,
+						},
+					},
+				},
+			},
+		},
+	},
+	{
+		tpl: `<template>
+				<flex>
+					<flex v-if="Int8Var2 < 0">
+						<box />
+					</flex>
+					<button v-else />
+				</flex>
+			</template>`,
+		expect: &ComponentNode{
+			Comp:        comp.CreateTemplate(),
+			Parent:      nil,
+			InheritVars: true,
+			Children: []*ComponentNode{
+				{
+					Comp:        comp.CreateFlex(),
+					InheritVars: true,
+					Children: []*ComponentNode{
+						{
+							Comp:        nil,
+							InheritVars: true,
+							Ignore:      true,
+							HasIf:       true,
+							If:          false,
+						},
+						{
+							Comp:        comp.CreateButton(),
+							InheritVars: true,
+							Ignore:      false,
+							HasElse:     true,
+							Else:        true,
+						},
+					},
+				},
+			},
+		},
+	},
+	{
+		tpl: `<template>
+				<flex>
+					<button v-if="Int8Var2 < 0" />
+					<flex v-else>
+						<box />
+					</flex>
+				</flex>
+			</template>`,
+		expect: &ComponentNode{
+			Comp:        comp.CreateTemplate(),
+			Parent:      nil,
+			InheritVars: true,
+			Children: []*ComponentNode{
+				{
+					Comp:        comp.CreateFlex(),
+					InheritVars: true,
+					Children: []*ComponentNode{
+						{
+							Comp:        nil,
+							InheritVars: true,
+							Ignore:      true,
+							HasIf:       true,
+							If:          false,
+						},
+						{
+							Comp:        comp.CreateFlex(),
+							InheritVars: true,
+							Ignore:      false,
+							HasElse:     true,
+							Else:        true,
+							Children: []*ComponentNode{
+								{
+									Comp:        comp.CreateBox(),
+									InheritVars: true,
+									Ignore:      false,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	},
+	{
+		tpl: `<template>
+				<flex>
+					<box />
+					<button v-else="Int64Var2 == 1" />
+				</flex>
+			</template>`,
+		err: "page.velseHasNoCorrespondingIf",
+	},
+	{
+		tpl: `<template>
+				<flex>
+					<box v-if="true" />
+					<box />
+					<button v-else="Int64Var2 == 1" />
+				</flex>
+			</template>`,
+		err: "page.velseHasNoCorrespondingIf",
+	},
+	{
+		tpl: `<template>
+				<flex>
+					<box />
+					<button v-else-if="Int64Var2 == 1" />
+				</flex>
+			</template>`,
+		err: "page.velseifHasNoCorrespondingIf",
+	},
+	{
+		tpl: `<template>
+				<flex>
+					<box v-if="true" />
+					<box />
+					<button v-else-if="Int64Var2 == 1" />
+				</flex>
+			</template>`,
+		err: "page.velseifHasNoCorrespondingIf",
+	},
+	{
+		tpl: `<template>
+				<flex v-if="false">
+				</flex>
+			</template>`,
+		err: "page.tplMustContainOneRootNode",
+	},
+	{
+		tpl: `<template>
+				<flex v-if="Int8Var2 < 0" />
+				<box v-else-if="Int32Var2 < 0" />
+			</template>`,
+		err: "page.tplMustContainOneRootNode",
+	},
+	{
+		tpl: `<template>
+				<flex v-if="Int8Var2 > 0" />
+				<box v-if="Int32Var2 > 0" />
+			</template>`,
+		err: "page.tplMustContainExactlyOneRootNode",
+	},
+	{
+		tpl: `<template>
+			<flex v-if="Int8Var2 > 0" />
+			<box v-else />
+		</template>`,
+		expect: &ComponentNode{
+			Comp:        comp.CreateTemplate(),
+			Parent:      nil,
+			InheritVars: true,
+			Children: []*ComponentNode{
+				{
+					Comp:        comp.CreateFlex(),
+					InheritVars: true,
+					Ignore:      false,
+					HasIf:       true,
+					If:          true,
+				},
+				{
+					Comp:        nil,
+					InheritVars: true,
+					Ignore:      true,
+					HasElse:     true,
+					Else:        false,
+				},
+			},
+		},
+	},
+	{
+		tpl: `<template>
+		<flex v-if="Int8Var2 < 0" />
+		<box v-else />
+	</template>`,
+		expect: &ComponentNode{
+			Comp:        comp.CreateTemplate(),
+			Parent:      nil,
+			InheritVars: true,
+			Children: []*ComponentNode{
+				{
+					Comp:        nil,
+					InheritVars: true,
+					Ignore:      true,
+					HasIf:       true,
+					If:          false,
+				},
+				{
+					Comp:        comp.CreateBox(),
+					InheritVars: true,
+					Ignore:      false,
+					HasElse:     true,
+					Else:        true,
 				},
 			},
 		},
