@@ -116,3 +116,14 @@ func sprintComponentNode(node *ComponentNode, level int) string {
 
 	return str
 }
+
+func CompareInterface(a interface{}, b interface{}) bool {
+	aval := reflect.ValueOf(a)
+	bval := reflect.ValueOf(b)
+
+	if aval.Kind() != bval.Kind() {
+		return false
+	}
+
+	return true
+}

@@ -99,12 +99,12 @@ var (
 			err: "tpl.conflictedDirective",
 		},
 		{
-			str: `<div v-for="idx, item := range items" v-for="idx2, item2 := range items2"></div>`,
+			str: `<div v-for="(idx, item) of items" v-for="(idx2, item2) of range items2"></div>`,
 			err: "tpl.duplicateDirective",
 		},
 		{
 			str: `<div v-for="abc"></div>`,
-			err: "tpl.invalidForDirective",
+			err: "tpl.invalidVforDirective",
 		},
 		{
 			str: `<template def=""></div>`,
@@ -378,7 +378,7 @@ var (
 		{
 			str: `
 			<template>
-				<comp-a v-for="idx, item := range items"></comp-a>
+				<comp-a v-for="(idx, item) of items"></comp-a>
 			</template>`,
 			tpl: []*TplNode{
 				{
@@ -391,11 +391,47 @@ var (
 							TagName: "comp-a",
 							Idx:     0,
 							For: &TplFor{
-								Idx:  "idx",
-								Item: "item",
+								Idx: "idx",
+								Val: "item",
 								Range: &Exp{
 									Type:     ExpVar,
 									Variable: "items",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			str: `
+			<template>
+				<comp-a v-for="(idx, item) of product.items"></comp-a>
+			</template>`,
+			tpl: []*TplNode{
+				{
+					Type:    TplNodeTag,
+					TagName: "template",
+					Idx:     0,
+					Children: []*TplNode{
+						{
+							Type:    TplNodeTag,
+							TagName: "comp-a",
+							Idx:     0,
+							For: &TplFor{
+								Idx: "idx",
+								Val: "item",
+								Range: &Exp{
+									Type:     ExpCalc,
+									Operator: ".",
+									Left: &Exp{
+										Type:     ExpVar,
+										Variable: "product",
+									},
+									Right: &Exp{
+										Type: ExpStr,
+										Str:  "items",
+									},
 								},
 							},
 						},
@@ -485,7 +521,7 @@ var (
 )
 
 func isTplForEqual(a TplFor, b TplFor) bool {
-	return a.Idx == b.Idx && a.Item == b.Item && (&a).Range.Equal(b.Range)
+	return a.Idx == b.Idx && a.Val == b.Val && (&a).Range.Equal(b.Range)
 }
 
 func isTplEqual(a []*TplNode, b []*TplNode) bool {

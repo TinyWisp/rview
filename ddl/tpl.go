@@ -24,7 +24,7 @@ var (
 		attrStart:         regexp.MustCompile(`^([a-zA-Z0-9\-_@:]+)=`),
 		attrWithoutVal:    regexp.MustCompile(`^([a-zA-Z0-9\-]+)`),
 		def:               regexp.MustCompile(`^([a-zA-Z0-9_\-]+)\((.*)\)$`),
-		vfor:              regexp.MustCompile(`^ *([a-zA-Z\_][a-zA-Z0-9\_]*), *([a-zA-Z\_][a-zA-Z0-9\_]*) *:= *range +([a-zA-Z\_][a-zA-Z0-9\_]*) *$`),
+		vfor:              regexp.MustCompile(`^\s*\(\s*([a-zA-Z\_][a-zA-Z0-9\_]*),\s*([a-zA-Z\_][a-zA-Z0-9\_]*)\s*\)\s+of\s+(.*?)\s*$`),
 		whitespace:        regexp.MustCompile(`^\s+`),
 	}
 )
@@ -62,10 +62,13 @@ type TplAttr struct {
 }
 
 type TplFor struct {
-	Pos   int
-	Item  string
-	Idx   string
-	Range *Exp
+	Pos      int
+	Idx      string
+	IdxPos   int
+	Val      string
+	ValPos   int
+	Range    *Exp
+	RangePos int
 }
 
 func (tn *TplNode) addAttr(pos int, key string, val string) error {
@@ -158,17 +161,21 @@ func (tn *TplNode) addAttr(pos int, key string, val string) error {
 		}
 		matches := tplPattern.vfor.FindStringSubmatch(val)
 		if len(matches) == 0 {
-			return NewDdlError("", pos, "tpl.invalidForDirective")
+			return NewDdlError("", pos, "tpl.invalidVforDirective")
 		}
 		rangeExp, err := ParseExp(matches[3])
 		if err != nil {
 			return err
 		}
+		imatches := tplPattern.vfor.FindStringSubmatchIndex(val)
 		tn.For = &TplFor{
-			Pos:   pos,
-			Item:  matches[2],
-			Idx:   matches[1],
-			Range: rangeExp,
+			Pos:      pos,
+			Idx:      matches[1],
+			Val:      matches[2],
+			Range:    rangeExp,
+			IdxPos:   imatches[2],
+			ValPos:   imatches[4],
+			RangePos: imatches[6],
 		}
 
 		// v-bind:var

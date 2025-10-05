@@ -3,11 +3,11 @@ package rview
 import (
 	"fmt"
 	"reflect"
+	"sort"
 
 	"github.com/TinyWisp/rview/comp"
 	"github.com/TinyWisp/rview/ddl"
 	"github.com/TinyWisp/rview/tperr"
-	"github.com/rivo/tview"
 )
 
 type Page struct {
@@ -40,7 +40,6 @@ func (p *Page) getVarForNode(node *ComponentNode, varName string) (interface{}, 
 }
 
 func (p *Page) createCompNode(tplNode *ddl.TplNode, parent *ComponentNode) ([]*ComponentNode, error) {
-	fmt.Println("aaaaaaaaaaaa")
 	empty := []*ComponentNode{}
 
 	// define a function that can get variables accessible for the parent node
@@ -48,7 +47,6 @@ func (p *Page) createCompNode(tplNode *ddl.TplNode, parent *ComponentNode) ([]*C
 		return p.getVarForNode(parent, varName)
 	}
 
-	fmt.Println("bbbbbbbbb")
 	// create node
 	keyPrefix := ""
 	if parent != nil {
@@ -74,27 +72,100 @@ func (p *Page) createCompNode(tplNode *ddl.TplNode, parent *ComponentNode) ([]*C
 			return empty, err
 		}
 		if iterateExp.Type != ddl.ExpInterface {
-			return empty, ddl.NewDdlError(p.Tpl, tplNode.For.Pos, "page.cannotRangeOverTheVar")
+			return empty, ddl.NewDdlError(p.Tpl, tplNode.For.RangePos, "page.cannotIterateOverTheVar")
 		}
+
 		iterateVal := reflect.ValueOf(iterateExp.Interface)
 		kind := iterateVal.Kind()
-		itemVarName := tplNode.For.Item
+		itemVarName := tplNode.For.Val
 		idxVarName := tplNode.For.Idx
 
+		// array, slice
 		if kind == reflect.Array || kind == reflect.Slice {
 			forNodes := []*ComponentNode{}
 			for i := 0; i < iterateVal.Len(); i++ {
 				itemVal := iterateVal.Index(i)
-				copyCompNode := *compNode
-				copyCompNode.Vars[itemVarName] = itemVal
-				copyCompNode.Vars[idxVarName] = i
 				copyTplNode := *tplNode
 				copyTplNode.For = nil
+				copyCompNode := *compNode
+				copyCompNode.Key = fmt.Sprintf("%s-%d", keyPrefix, i)
+				copyCompNode.Vars = map[string]interface{}{}
+				copyCompNode.Vars[itemVarName] = itemVal.Interface()
+				copyCompNode.Vars[idxVarName] = i
 				comp, cerr := p.createComponentAndSetProps(&copyCompNode, &copyTplNode)
 				if cerr != nil {
 					return empty, cerr
 				}
 				copyCompNode.Comp = comp
+
+				if len(copyTplNode.Children) > 0 {
+					for _, childTplNode := range copyTplNode.Children {
+						childComponentNode, ccerr := p.createCompNode(childTplNode, &copyCompNode)
+						if ccerr != nil {
+							return empty, ccerr
+						}
+						copyCompNode.Children = append(copyCompNode.Children, childComponentNode...)
+					}
+				}
+
+				forNodes = append(forNodes, &copyCompNode)
+			}
+
+			return forNodes, nil
+		}
+
+		// map
+		if kind == reflect.Map {
+			forNodes := []*ComponentNode{}
+			mapKeys := iterateVal.MapKeys()
+
+			// golang's maps are unordered.
+			// to avoid inconsistencies in the order of generated nodes each time, sorting is necessary.
+			sort.SliceStable(mapKeys, func(i int, j int) bool {
+				switch mapKeys[i].Kind() {
+				case reflect.String:
+					return mapKeys[i].String() < mapKeys[j].String()
+
+				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+					return mapKeys[i].Int() < mapKeys[j].Int()
+
+				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+					return mapKeys[i].Uint() < mapKeys[j].Uint()
+
+				case reflect.Float32, reflect.Float64:
+					return mapKeys[i].Float() < mapKeys[j].Float()
+
+				default:
+					return false
+				}
+			})
+
+			for i := 0; i < len(mapKeys); i++ {
+				mkey := mapKeys[i]
+				mval := iterateVal.MapIndex(mkey)
+				copyTplNode := *tplNode
+				copyTplNode.For = nil
+				copyCompNode := *compNode
+				copyCompNode.Key = fmt.Sprintf("%s-%d", keyPrefix, i)
+				copyCompNode.Vars = map[string]interface{}{}
+				copyCompNode.Vars[itemVarName] = mval.Interface()
+				copyCompNode.Vars[idxVarName] = mkey.Interface()
+				comp, cerr := p.createComponentAndSetProps(&copyCompNode, &copyTplNode)
+				if cerr != nil {
+					return empty, cerr
+				}
+				copyCompNode.Comp = comp
+
+				if len(copyTplNode.Children) > 0 {
+					for _, childTplNode := range copyTplNode.Children {
+						childComponentNode, ccerr := p.createCompNode(childTplNode, &copyCompNode)
+						if ccerr != nil {
+							return empty, ccerr
+						}
+						copyCompNode.Children = append(copyCompNode.Children, childComponentNode...)
+					}
+				}
+
 				forNodes = append(forNodes, &copyCompNode)
 			}
 
@@ -102,13 +173,10 @@ func (p *Page) createCompNode(tplNode *ddl.TplNode, parent *ComponentNode) ([]*C
 		}
 	}
 
-	fmt.Println("cccccccccccccc")
 	// v-if
 	if tplNode.If != nil {
 		compNode.HasIf = true
-		fmt.Println("kkkkkkkkkkkkkkkkk")
 		res, err := CalcExp(tplNode.If.Exp, getParentVariable)
-		fmt.Println("llllllllllllll")
 		if err != nil {
 			return empty, err
 		}
@@ -122,11 +190,11 @@ func (p *Page) createCompNode(tplNode *ddl.TplNode, parent *ComponentNode) ([]*C
 	} else if tplNode.ElseIf != nil {
 		compNode.HasElseIf = true
 		if tplNode.Idx == 0 {
-			return empty, ddl.NewDdlError(p.Tpl, tplNode.Pos, "page.velseifHasNoCorrespondingIf")
+			return empty, ddl.NewDdlError(p.Tpl, tplNode.ElseIf.Pos, "page.velseifHasNoCorrespondingIf")
 		}
 		prevCompNode := parent.Children[len(parent.Children)-1]
 		if !prevCompNode.HasIf && !prevCompNode.HasElseIf {
-			return empty, ddl.NewDdlError(p.Tpl, tplNode.Pos, "page.velseifHasNoCorrespondingIf")
+			return empty, ddl.NewDdlError(p.Tpl, tplNode.ElseIf.Pos, "page.velseifHasNoCorrespondingIf")
 		}
 		if (prevCompNode.HasIf && prevCompNode.If) || (prevCompNode.HasElseIf && prevCompNode.ElseIf) {
 			compNode.ElseIf = false
@@ -147,11 +215,11 @@ func (p *Page) createCompNode(tplNode *ddl.TplNode, parent *ComponentNode) ([]*C
 	} else if tplNode.Else != nil {
 		compNode.HasElse = true
 		if tplNode.Idx == 0 {
-			return empty, ddl.NewDdlError(p.Tpl, tplNode.Pos, "page.velseHasNoCorrespondingIf")
+			return empty, ddl.NewDdlError(p.Tpl, tplNode.Else.Pos, "page.velseHasNoCorrespondingIf")
 		}
 		prevCompNode := parent.Children[len(parent.Children)-1]
 		if !prevCompNode.HasIf && !prevCompNode.HasElseIf {
-			return empty, ddl.NewDdlError(p.Tpl, tplNode.Pos, "page.velseHasNoCorrespondingIf")
+			return empty, ddl.NewDdlError(p.Tpl, tplNode.Else.Pos, "page.velseHasNoCorrespondingIf")
 		}
 		if (prevCompNode.HasIf && prevCompNode.If) || (prevCompNode.HasElseIf && prevCompNode.ElseIf) {
 			compNode.Else = false
@@ -162,12 +230,10 @@ func (p *Page) createCompNode(tplNode *ddl.TplNode, parent *ComponentNode) ([]*C
 		compNode.Ignore = false
 	}
 
-	fmt.Println("dddddddddddddddd")
 	if compNode.Ignore {
 		return []*ComponentNode{compNode}, nil
 	}
 
-	fmt.Println("eeeeeeeeeeeee")
 	// create component instance
 	comp, cerr := p.createComponentAndSetProps(compNode, tplNode)
 	if cerr != nil {
@@ -176,7 +242,6 @@ func (p *Page) createCompNode(tplNode *ddl.TplNode, parent *ComponentNode) ([]*C
 
 	compNode.Comp = comp
 
-	fmt.Println("ffffffffff")
 	// children
 	for _, childTplNode := range tplNode.Children {
 		childCompNodes, cerr := p.createCompNode(childTplNode, compNode)
@@ -186,7 +251,6 @@ func (p *Page) createCompNode(tplNode *ddl.TplNode, parent *ComponentNode) ([]*C
 		compNode.Children = append(compNode.Children, childCompNodes...)
 	}
 
-	fmt.Println("ggggggggggg")
 	return []*ComponentNode{compNode}, nil
 }
 
@@ -228,15 +292,16 @@ func (p *Page) createComponentAndSetProps(node *ComponentNode, tplNode *ddl.TplN
 		}
 
 		if err != nil {
+			if terr, ok := err.(*tperr.TypedError); ok {
+				derr := ddl.NewDdlError(p.Tpl, attr.Pos, terr.GetEtype(), terr.GetVars()...)
+				return nil, derr
+			}
+
 			return nil, err
 		}
 	}
 
 	return comp, nil
-}
-
-func (p *Page) Primitive() tview.Primitive {
-	return (p.root.Comp).Primitive()
 }
 
 func NewPage(def interface{}) (*Page, error) {

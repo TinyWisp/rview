@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/TinyWisp/rview/tperr"
+	"github.com/mattn/go-runewidth"
 )
 
 type DdlError struct {
@@ -52,9 +53,15 @@ func (de *DdlError) Error() string {
 	for idx := beginLine; idx <= errRow; idx++ {
 		msg += lines[idx] + "\n"
 	}
-	for idx := 0; idx < errCol; idx++ {
-		msg += " "
+	for col := 0; col < errCol; col++ {
+		ch := string(lines[errRow][col])
+		if ch == "\t" || ch == "\r" {
+			msg += ch
+		} else {
+			msg += strings.Repeat(" ", runewidth.StringWidth(ch))
+		}
 	}
+
 	msg += "^\n"
 	for idx := errRow + 1; idx < errRow+2 && idx < len(lines); idx++ {
 		msg += lines[idx] + "\n"

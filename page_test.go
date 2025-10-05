@@ -65,7 +65,7 @@ var testDef = TestDef{
 		"world": "world",
 	},
 	ArrStr: []string{"hello", "world"},
-	ArrInt: []int{10, 11, 12, 13},
+	ArrInt: []int{10, 11},
 
 	FuncWithoutParamsNorReturn: func() {},
 	FuncPlus:                   func(a int, b int) int { return a + b },
@@ -74,6 +74,8 @@ var testDef = TestDef{
 	FuncDivision:               func(a int, b int) int { return a / b },
 	FuncPlusReturnMulti:        func(a int, b int) (int, error) { return a + b, nil },
 }
+
+// -------------------------------- test creating nodes ------------------------------------
 
 type CreateNodeTestCase struct {
 	tpl    string
@@ -721,30 +723,30 @@ var createNodeTestCases []CreateNodeTestCase = []CreateNodeTestCase{
 	},
 	{
 		tpl: `<template>
-				<flex v-if="false">
-				</flex>
-			</template>`,
+						<flex v-if="false">
+						</flex>
+					</template>`,
 		err: "page.tplMustContainOneRootNode",
 	},
 	{
 		tpl: `<template>
-				<flex v-if="Int8Var2 < 0" />
-				<box v-else-if="Int32Var2 < 0" />
-			</template>`,
+						<flex v-if="Int8Var2 < 0" />
+						<box v-else-if="Int32Var2 < 0" />
+					</template>`,
 		err: "page.tplMustContainOneRootNode",
 	},
 	{
 		tpl: `<template>
-				<flex v-if="Int8Var2 > 0" />
-				<box v-if="Int32Var2 > 0" />
-			</template>`,
+						<flex v-if="Int8Var2 > 0" />
+						<box v-if="Int32Var2 > 0" />
+					</template>`,
 		err: "page.tplMustContainExactlyOneRootNode",
 	},
 	{
 		tpl: `<template>
-			<flex v-if="Int8Var2 > 0" />
-			<box v-else />
-		</template>`,
+						<flex v-if="Int8Var2 > 0" />
+						<box v-else />
+					</template>`,
 		expect: &ComponentNode{
 			Comp:        comp.CreateTemplate(),
 			Parent:      nil,
@@ -769,9 +771,9 @@ var createNodeTestCases []CreateNodeTestCase = []CreateNodeTestCase{
 	},
 	{
 		tpl: `<template>
-		<flex v-if="Int8Var2 < 0" />
-		<box v-else />
-	</template>`,
+						<flex v-if="Int8Var2 < 0" />
+						<box v-else />
+					</template>`,
 		expect: &ComponentNode{
 			Comp:        comp.CreateTemplate(),
 			Parent:      nil,
@@ -793,6 +795,307 @@ var createNodeTestCases []CreateNodeTestCase = []CreateNodeTestCase{
 				},
 			},
 		},
+	},
+	{
+		tpl: `<template>
+						<flex>
+							<box v-for="(idx, el) of ArrStr" />
+						</flex>
+					</template>`,
+		expect: &ComponentNode{
+			Comp:        comp.CreateTemplate(),
+			Parent:      nil,
+			InheritVars: true,
+			Children: []*ComponentNode{
+				{
+					Comp:        comp.CreateFlex(),
+					InheritVars: true,
+					Children: []*ComponentNode{
+						{
+							Comp:        comp.CreateBox(),
+							InheritVars: true,
+							Vars: map[string]interface{}{
+								"idx": 0,
+								"el":  "hello",
+							},
+						},
+						{
+							Comp:        comp.CreateBox(),
+							InheritVars: true,
+							Vars: map[string]interface{}{
+								"idx": 1,
+								"el":  "world",
+							},
+						},
+					},
+				},
+			},
+		},
+	},
+	{
+		tpl: `<template>
+						<flex>
+							<flex v-for="(idx1, el1) of ArrStr">
+								<box v-for="(idx2, el2) of ArrInt" />
+							</flex>
+						</flex>
+					</template>`,
+		expect: &ComponentNode{
+			Comp:        comp.CreateTemplate(),
+			Parent:      nil,
+			InheritVars: true,
+			Children: []*ComponentNode{
+				{
+					Comp:        comp.CreateFlex(),
+					InheritVars: true,
+					Children: []*ComponentNode{
+						{
+							Comp:        comp.CreateFlex(),
+							InheritVars: true,
+							Vars: map[string]interface{}{
+								"idx1": 0,
+								"el1":  "hello",
+							},
+							Children: []*ComponentNode{
+								{
+									Comp:        comp.CreateBox(),
+									InheritVars: true,
+									Vars: map[string]interface{}{
+										"idx2": 0,
+										"el2":  10,
+									},
+								},
+								{
+									Comp:        comp.CreateBox(),
+									InheritVars: true,
+									Vars: map[string]interface{}{
+										"idx2": 1,
+										"el2":  11,
+									},
+								},
+							},
+						},
+						{
+							Comp:        comp.CreateFlex(),
+							InheritVars: true,
+							Vars: map[string]interface{}{
+								"idx1": 1,
+								"el1":  "world",
+							},
+							Children: []*ComponentNode{
+								{
+									Comp:        comp.CreateBox(),
+									InheritVars: true,
+									Vars: map[string]interface{}{
+										"idx2": 0,
+										"el2":  10,
+									},
+								},
+								{
+									Comp:        comp.CreateBox(),
+									InheritVars: true,
+									Vars: map[string]interface{}{
+										"idx2": 1,
+										"el2":  11,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	},
+	{
+		tpl: `<template>
+						<flex>
+							<box v-for="(key, val) of MapStrStr" />
+						</flex>
+					</template>`,
+		expect: &ComponentNode{
+			Comp:        comp.CreateTemplate(),
+			Parent:      nil,
+			InheritVars: true,
+			Children: []*ComponentNode{
+				{
+					Comp:        comp.CreateFlex(),
+					InheritVars: true,
+					Children: []*ComponentNode{
+						{
+							Comp:        comp.CreateBox(),
+							InheritVars: true,
+							Vars: map[string]interface{}{
+								"key": "hello",
+								"val": "hello",
+							},
+						},
+						{
+							Comp:        comp.CreateBox(),
+							InheritVars: true,
+							Vars: map[string]interface{}{
+								"key": "world",
+								"val": "world",
+							},
+						},
+					},
+				},
+			},
+		},
+	},
+	{
+		tpl: `<template>
+						<flex>
+							<flex v-for="(idx1, el1) of ArrStr">
+								<flex v-for="(idx2, el2) of ArrInt">
+									<box v-for="(key, val) of MapStrStr">
+									</box>
+								</flex>
+							</flex>
+						</flex>
+					</template>`,
+		expect: &ComponentNode{
+			Comp:        comp.CreateTemplate(),
+			Parent:      nil,
+			InheritVars: true,
+			Children: []*ComponentNode{
+				{
+					Comp:        comp.CreateFlex(),
+					InheritVars: true,
+					Children: []*ComponentNode{
+						{
+							Comp:        comp.CreateFlex(),
+							InheritVars: true,
+							Vars: map[string]interface{}{
+								"idx1": 0,
+								"el1":  "hello",
+							},
+							Children: []*ComponentNode{
+								{
+									Comp:        comp.CreateFlex(),
+									InheritVars: true,
+									Vars: map[string]interface{}{
+										"idx2": 0,
+										"el2":  10,
+									},
+									Children: []*ComponentNode{
+										{
+											Comp:        comp.CreateBox(),
+											InheritVars: true,
+											Vars: map[string]interface{}{
+												"key": "hello",
+												"val": "hello",
+											},
+										},
+										{
+											Comp:        comp.CreateBox(),
+											InheritVars: true,
+											Vars: map[string]interface{}{
+												"key": "world",
+												"val": "world",
+											},
+										},
+									},
+								},
+								{
+									Comp:        comp.CreateFlex(),
+									InheritVars: true,
+									Vars: map[string]interface{}{
+										"idx2": 1,
+										"el2":  11,
+									},
+									Children: []*ComponentNode{
+										{
+											Comp:        comp.CreateBox(),
+											InheritVars: true,
+											Vars: map[string]interface{}{
+												"key": "hello",
+												"val": "hello",
+											},
+										},
+										{
+											Comp:        comp.CreateBox(),
+											InheritVars: true,
+											Vars: map[string]interface{}{
+												"key": "world",
+												"val": "world",
+											},
+										},
+									},
+								},
+							},
+						},
+						{
+							Comp:        comp.CreateFlex(),
+							InheritVars: true,
+							Vars: map[string]interface{}{
+								"idx1": 1,
+								"el1":  "world",
+							},
+							Children: []*ComponentNode{
+								{
+									Comp:        comp.CreateFlex(),
+									InheritVars: true,
+									Vars: map[string]interface{}{
+										"idx2": 0,
+										"el2":  10,
+									},
+									Children: []*ComponentNode{
+										{
+											Comp:        comp.CreateBox(),
+											InheritVars: true,
+											Vars: map[string]interface{}{
+												"key": "hello",
+												"val": "hello",
+											},
+										},
+										{
+											Comp:        comp.CreateBox(),
+											InheritVars: true,
+											Vars: map[string]interface{}{
+												"key": "world",
+												"val": "world",
+											},
+										},
+									},
+								},
+								{
+									Comp:        comp.CreateFlex(),
+									InheritVars: true,
+									Vars: map[string]interface{}{
+										"idx2": 1,
+										"el2":  11,
+									},
+									Children: []*ComponentNode{
+										{
+											Comp:        comp.CreateBox(),
+											InheritVars: true,
+											Vars: map[string]interface{}{
+												"key": "hello",
+												"val": "hello",
+											},
+										},
+										{
+											Comp:        comp.CreateBox(),
+											InheritVars: true,
+											Vars: map[string]interface{}{
+												"key": "world",
+												"val": "world",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	},
+	{
+		tpl: `<template>
+						<box v-for="(item, idx) of MapStrStr" />
+					</template>`,
+		err: "page.tplMustContainExactlyOneRootNode",
 	},
 }
 
@@ -936,6 +1239,7 @@ func TestCreateNode(t *testing.T) {
 		def.Tpl = testCase.tpl
 
 		page, err := NewPage(def)
+		t.Log(err)
 		if err != nil && testCase.err == "" {
 			t.Fatal(err)
 		}
@@ -959,6 +1263,103 @@ func TestCreateNode(t *testing.T) {
 			t.Log(sprintComponentNode(real, 0))
 			t.Log(sprintComponentNode(expect, 0))
 			t.Fatalf("the generated component node is not as the expected\n")
+		}
+	}
+}
+
+// --------------------------------------- test setting props ----------------------------------------
+
+type TestSetPropCase struct {
+	tpl    string
+	expect func(root *ComponentNode) bool
+	err    string
+}
+
+var setPropTestCases = []TestSetPropCase{
+	{
+		tpl: `<template>
+			<box title="hello" />
+		</template>`,
+		expect: func(root *ComponentNode) bool {
+			if len(root.Children) != 1 {
+				return false
+			}
+
+			node := root.Children[0]
+			title, err := node.Comp.GetProp("title")
+
+			return err == nil && title.(string) == "hello"
+		},
+	},
+	{
+		tpl: `<template>
+			<box border="true" />
+		</template>`,
+		err: "comp.SetProp.propTypeMismatch",
+	},
+	{
+		tpl: `<template>
+			<box :border="true" />
+		</template>`,
+		expect: func(root *ComponentNode) bool {
+			if len(root.Children) != 1 {
+				return false
+			}
+
+			node := root.Children[0]
+			border, err := node.Comp.GetProp("border")
+
+			return err == nil && border.(bool) == true
+		},
+	},
+	{
+		tpl: `<template>
+			<textarea text="hello" />
+		</template>
+		`,
+		expect: func(root *ComponentNode) bool {
+			if len(root.Children) != 1 {
+				return false
+			}
+
+			node := root.Children[0]
+			text, err := node.Comp.GetProp("text")
+
+			return err == nil && text.(string) == "hello"
+		},
+	},
+}
+
+func TestSetProp(t *testing.T) {
+	for _, testCase := range setPropTestCases {
+		t.Log("----------------------")
+		t.Log(testCase.tpl)
+
+		def := testDef
+		def.Tpl = testCase.tpl
+
+		page, err := NewPage(def)
+		t.Log(err)
+		if err != nil && testCase.err == "" {
+			t.Fatal(err)
+		}
+
+		if err != nil && testCase.err != "" {
+			notExpectedErr := true
+			if terr, ok := err.(*tperr.TypedError); ok && terr.Is(testCase.err) {
+				notExpectedErr = false
+			} else if derr, ok := err.(*ddl.DdlError); ok && derr.Is(testCase.err) {
+				notExpectedErr = false
+			}
+			if notExpectedErr {
+				t.Fatalf("the error occured during the test is not as expected.\n expect: %s\nactual: %s\n", testCase.err, err.Error())
+			}
+			continue
+		}
+
+		expect := testCase.expect
+		if expect != nil && !expect(page.root) {
+			t.Fatalf("the component node's props are not as the expected\n")
 		}
 	}
 }

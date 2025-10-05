@@ -29,7 +29,7 @@ var msgMap = map[string]string{
 	"tpl.duplicateDirective":            "duplicate directive",
 	"tpl.conflictedDirective":           "conflicted directives",
 	"tpl.duplicateEventHandler":         "duplicate event handler",
-	"tpl.invalidForDirective":           "invalid v-for directive",
+	"tpl.invalidVforDirective":          "invalid v-for directive",
 	"tpl.invalidDefAttr":                "invalid def attribute",
 
 	"util.SetStructField.fieldNotExist":       "invalid field: %s",
@@ -52,7 +52,7 @@ var msgMap = map[string]string{
 	"calc.argumentNumberNotEnough": `function "%s" expect %d or more arguments, but got %d`,
 
 	"comp.SetProp.propNotAllowed":               "invalid property: '%s' is not allowed on '%s",
-	"comp.SetProp.propTypeMismatch":             "invalid property: cannot assign %s to %s on %s",
+	"comp.SetProp.propTypeMismatch":             "invalid property: cannot assign a %s to '%s' on <%s>; expected a %s",
 	"comp.SetProp.propSetterMustBeOneParameter": "",
 
 	"page.tplFieldIsRequired":               "the Tpl field is required.",
@@ -66,6 +66,7 @@ var msgMap = map[string]string{
 	"page.velseDirectiveMustBeBool":         "invalid expression in v-else: expected a boolean, got %s instead",
 	"page.velseHasNoCorrespondingIf":        "v-else directive requires a preceding v-if sibling. No matching v-if found.",
 	"page.velseifHasNoCorrespondingIf":      "v-else-if directive requires a preceding v-if sibling. No matching v-if found.",
+	"page.cannotIterateOverTheVar":          "cannot iterate over the variable.",
 }
 
 func T(msg string) string {

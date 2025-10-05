@@ -17,7 +17,7 @@ func (tte *TraceableTypedError) Error() string {
 	msg = fmt.Sprintf(T(tte.etype), tte.vars...) + "\n"
 
 	if tte.pos == -1 || tte.raw == "" {
-		tte.pos = len(tte.raw) - 1
+		return msg
 	}
 
 	lines := strings.Split(tte.raw, "\n")
