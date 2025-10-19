@@ -8,28 +8,31 @@ import (
 	"github.com/iancoleman/strcase"
 )
 
-type Base struct {
-	name string
-	inst interface{}
+type Base[T any] struct {
+	name      string
+	outerInst interface{}
+	tviewInst T
 }
 
-func (b *Base) GetName() string {
+func (b *Base[T]) GetName() string {
 	return b.name
 }
 
-func (b *Base) Primitive() Primitive {
-	return b.inst.(Primitive)
-}
-
-func (b *Base) SetProp(prop string, val interface{}) error {
-	primVal := reflect.ValueOf(b.inst)
+func (b *Base[T]) SetProp(prop string, val interface{}) error {
+	outerInstVal := reflect.ValueOf(b.outerInst)
+	tviewInstVal := reflect.ValueOf(b.tviewInst)
 	funcName := fmt.Sprintf("Set%s", strcase.ToCamel(prop))
-	setter := primVal.MethodByName(funcName)
 
-	if !setter.IsValid() {
+	outerSetter := outerInstVal.MethodByName(funcName)
+	tviewSetter := tviewInstVal.MethodByName(funcName)
+	if !outerSetter.IsValid() && !tviewSetter.IsValid() {
 		return tperr.NewTypedError("comp.SetProp.propNotAllowed", prop, b.GetName())
 	}
 
+	setter := outerSetter
+	if !setter.IsValid() {
+		setter = tviewSetter
+	}
 	setterType := setter.Type()
 	if setterType.In(0) == reflect.TypeOf(val) {
 		setter.Call([]reflect.Value{reflect.ValueOf(val)})
@@ -46,24 +49,29 @@ func (b *Base) SetProp(prop string, val interface{}) error {
 	return tperr.NewTypedError("comp.SetProp.propTypeMismatch", reflect.TypeOf(val).Name(), prop, b.GetName(), setterType.In(0).Kind())
 }
 
-func (b *Base) GetProp(prop string) (interface{}, error) {
-	primVal := reflect.ValueOf(b.inst)
+func (b *Base[T]) GetProp(prop string) (interface{}, error) {
+	outerInstVal := reflect.ValueOf(b.outerInst)
+	tviewInstVal := reflect.ValueOf(b.tviewInst)
 	funcName := fmt.Sprintf("Get%s", strcase.ToCamel(prop))
-	fmt.Println(funcName)
-	setter := primVal.MethodByName(funcName)
 
-	if !setter.IsValid() {
+	outerGetter := outerInstVal.MethodByName(funcName)
+	tviewGetter := tviewInstVal.MethodByName(funcName)
+	if !outerGetter.IsValid() && !tviewGetter.IsValid() {
 		return nil, tperr.NewTypedError("comp.GetProp.propNotExist", prop, b.GetName())
 	}
 
-	res := setter.Call([]reflect.Value{})
+	getter := outerGetter
+	if !getter.IsValid() {
+		getter = tviewGetter
+	}
+	res := getter.Call([]reflect.Value{})
 	return res[0].Interface(), nil
 }
 
-func (b *Base) CanAddItem() bool {
+func (b *Base[T]) CanAddItem() bool {
 	return false
 }
 
-func (b *Base) AddItem(comp *Component, props map[string]interface{}) error {
+func (b *Base[T]) AddItem(comp *Component, props map[string]interface{}) error {
 	return nil
 }

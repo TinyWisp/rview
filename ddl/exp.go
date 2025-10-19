@@ -445,7 +445,7 @@ func generateExpTree(exps []Exp) (*Exp, error) {
 				curOptr := exp.Operator
 				if operatorPriority[curOptr] <= operatorPriority[lastOptr] {
 					var err error
-					opndStack, optrStack, err = calculate(opndStack, optrStack)
+					opndStack, optrStack, err = popAndAssembleNode(opndStack, optrStack)
 					if err != nil {
 						return nil, err
 					}
@@ -468,7 +468,7 @@ func generateExpTree(exps []Exp) (*Exp, error) {
 		}
 
 		var err error
-		opndStack, optrStack, err = calculate(opndStack, optrStack)
+		opndStack, optrStack, err = popAndAssembleNode(opndStack, optrStack)
 		if err != nil {
 			return nil, err
 		}
@@ -477,7 +477,7 @@ func generateExpTree(exps []Exp) (*Exp, error) {
 	return opndStack[0], nil
 }
 
-func calculate(opndStack []*Exp, optrStack []*Exp) ([]*Exp, []*Exp, error) {
+func popAndAssembleNode(opndStack []*Exp, optrStack []*Exp) ([]*Exp, []*Exp, error) {
 	if len(optrStack) == 0 {
 		return opndStack, optrStack, nil
 	}

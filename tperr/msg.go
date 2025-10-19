@@ -55,6 +55,9 @@ var msgMap = map[string]string{
 	"comp.SetProp.propTypeMismatch":             "invalid property: cannot assign a %s to '%s' on <%s>; expected a %s",
 	"comp.SetProp.propSetterMustBeOneParameter": "",
 
+	"comp.colorPropNotValid":  `invalid value %s; expected a known color name like "green", "black", or a hex code like "#FF0000"`,
+	"comp.titleAlignNotValid": `invalid value for "titleAlign": got "%s", expected one of "left", "right", or "center"`,
+
 	"page.tplFieldIsRequired":               "the Tpl field is required.",
 	"page.tplMustContainOneRootNode":        "the template must contain one root node.",
 	"page.tplMustContainExactlyOneRootNode": "the template must contain exactly one root node.",

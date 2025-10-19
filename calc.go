@@ -8,6 +8,7 @@ import (
 	"github.com/TinyWisp/rview/tperr"
 )
 
+// a function that get a variable according to its name
 type VarGetter func(name string) (interface{}, error)
 
 func CalcExp(exp *ddl.Exp, varGetter VarGetter) (*ddl.Exp, error) {

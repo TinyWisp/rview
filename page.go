@@ -334,11 +334,21 @@ func NewPage(def interface{}) (*Page, error) {
 	// TagCompCreatorMap
 	icomponents, err := GetStructField(p.def, "Components")
 	p.TagCompCreatorMap = map[string]func() comp.Component{
-		"box":      comp.CreateBox,
-		"button":   comp.CreateButton,
-		"textarea": comp.CreateTextArea,
-		"flex":     comp.CreateFlex,
-		"template": comp.CreateTemplate,
+		"box":        comp.CreateBox,
+		"button":     comp.CreateButton,
+		"textarea":   comp.CreateTextArea,
+		"inputfield": comp.CreateInputField,
+		"checkbox":   comp.CreateCheckbox,
+		"dropdown":   comp.CreateDropdown,
+		"form":       comp.CreateForm,
+		"flex":       comp.CreateFlex,
+		"grid":       comp.CreateGrid,
+		"image":      comp.CreateImage,
+		"table":      comp.CreateTable,
+		"list":       comp.CreateList,
+		"treeview":   comp.CreateTreeView,
+		"modal":      comp.CreateModal,
+		"template":   comp.CreateTemplate,
 	}
 	if err == nil {
 		tagCompCreatorMap, ok := icomponents.(map[string]func() comp.Component)
