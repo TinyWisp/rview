@@ -12,10 +12,11 @@ import (
 
 type Page struct {
 	Tpl               string
-	tplNode           *ddl.TplNode
 	TagCompCreatorMap map[string]func() comp.Component
+	tplRoot           *ddl.TplNode
 	root              *ComponentNode
 	def               interface{}
+	cache             map[string]comp.Component
 }
 
 // get a variable for a node
@@ -53,6 +54,13 @@ func (p *Page) createCompNode(tplNode *ddl.TplNode, parent *ComponentNode) ([]*C
 		keyPrefix = parent.Key
 	}
 	key := fmt.Sprintf("%s-%d", keyPrefix, tplNode.Idx)
+	if keyAttr, ok := tplNode.Attrs["key"]; ok {
+		ckey, err := CalcExp(keyAttr.Exp, getParentVariable)
+		if err != nil {
+			return empty, err
+		}
+		key = fmt.Sprintf("%s-%s", keyPrefix, ckey.ToString())
+	}
 	compNode := &ComponentNode{
 		Key:         key,
 		TplNode:     tplNode,
@@ -92,7 +100,17 @@ func (p *Page) createCompNode(tplNode *ddl.TplNode, parent *ComponentNode) ([]*C
 				copyCompNode.Vars = map[string]interface{}{}
 				copyCompNode.Vars[itemVarName] = itemVal.Interface()
 				copyCompNode.Vars[idxVarName] = i
-				comp, cerr := p.createComponentAndSetProps(&copyCompNode, &copyTplNode)
+				if keyAttr, ok := copyTplNode.Attrs["key"]; ok {
+					getCurrentVariable := func(varName string) (interface{}, error) {
+						return p.getVarForNode(&copyCompNode, varName)
+					}
+					ckey, err := CalcExp(keyAttr.Exp, getCurrentVariable)
+					if err != nil {
+						return empty, err
+					}
+					copyCompNode.Key = fmt.Sprintf("%s-%s", keyPrefix, ckey.ToString())
+				}
+				comp, cerr := p.createComponentAndSetProps(&copyCompNode, &copyTplNode, copyCompNode.Key)
 				if cerr != nil {
 					return empty, cerr
 				}
@@ -150,7 +168,17 @@ func (p *Page) createCompNode(tplNode *ddl.TplNode, parent *ComponentNode) ([]*C
 				copyCompNode.Vars = map[string]interface{}{}
 				copyCompNode.Vars[itemVarName] = mval.Interface()
 				copyCompNode.Vars[idxVarName] = mkey.Interface()
-				comp, cerr := p.createComponentAndSetProps(&copyCompNode, &copyTplNode)
+				if keyAttr, ok := copyTplNode.Attrs["key"]; ok {
+					getCurrentVariable := func(varName string) (interface{}, error) {
+						return p.getVarForNode(&copyCompNode, varName)
+					}
+					ckey, err := CalcExp(keyAttr.Exp, getCurrentVariable)
+					if err != nil {
+						return empty, err
+					}
+					copyCompNode.Key = fmt.Sprintf("%s-%s", keyPrefix, ckey.ToString())
+				}
+				comp, cerr := p.createComponentAndSetProps(&copyCompNode, &copyTplNode, copyCompNode.Key)
 				if cerr != nil {
 					return empty, cerr
 				}
@@ -235,7 +263,7 @@ func (p *Page) createCompNode(tplNode *ddl.TplNode, parent *ComponentNode) ([]*C
 	}
 
 	// create component instance
-	comp, cerr := p.createComponentAndSetProps(compNode, tplNode)
+	comp, cerr := p.createComponentAndSetProps(compNode, tplNode, compNode.Key)
 	if cerr != nil {
 		return empty, cerr
 	}
@@ -254,13 +282,17 @@ func (p *Page) createCompNode(tplNode *ddl.TplNode, parent *ComponentNode) ([]*C
 	return []*ComponentNode{compNode}, nil
 }
 
-func (p *Page) createComponentAndSetProps(node *ComponentNode, tplNode *ddl.TplNode) (comp.Component, error) {
-	tagCompCreator, ok := p.TagCompCreatorMap[tplNode.TagName]
+func (p *Page) createComponentAndSetProps(node *ComponentNode, tplNode *ddl.TplNode, key string) (comp.Component, error) {
+	comp, ok := p.cache[key]
 	if !ok {
-		err := ddl.NewDdlError(p.Tpl, tplNode.Pos, "page.compNotFound", tplNode.TagName)
-		return nil, err
+		tagCompCreator, cok := p.TagCompCreatorMap[tplNode.TagName]
+		if !cok {
+			err := ddl.NewDdlError(p.Tpl, tplNode.Pos, "page.compNotFound", tplNode.TagName)
+			return nil, err
+		}
+		comp = tagCompCreator()
+		p.cache[key] = comp
 	}
-	comp := tagCompCreator()
 
 	// define a function to get variables
 	getVariable := func(name string) (interface{}, error) {
@@ -269,6 +301,10 @@ func (p *Page) createComponentAndSetProps(node *ComponentNode, tplNode *ddl.TplN
 
 	// set the props
 	for prop, attr := range tplNode.Attrs {
+		if prop == "ref" || prop == "key" {
+			continue
+		}
+
 		exp, err := CalcExp(attr.Exp, getVariable)
 		if err != nil {
 			return nil, err
@@ -306,7 +342,8 @@ func (p *Page) createComponentAndSetProps(node *ComponentNode, tplNode *ddl.TplN
 
 func NewPage(def interface{}) (*Page, error) {
 	p := &Page{
-		def: def,
+		def:   def,
+		cache: map[string]comp.Component{},
 	}
 
 	// Tpl
@@ -325,11 +362,11 @@ func NewPage(def interface{}) (*Page, error) {
 	if err != nil {
 		return nil, err
 	}
-	tplNode, ok := pddl.TplMap["main"]
+	tplRoot, ok := pddl.TplMap["main"]
 	if !ok {
 		return nil, tperr.NewTypedError("page.mainTemplateBeEssential")
 	}
-	p.tplNode = tplNode
+	p.tplRoot = tplRoot
 
 	// TagCompCreatorMap
 	icomponents, err := GetStructField(p.def, "Components")
@@ -361,7 +398,7 @@ func NewPage(def interface{}) (*Page, error) {
 	}
 
 	// root
-	nodes, err := p.createCompNode(p.tplNode, nil)
+	nodes, err := p.createCompNode(p.tplRoot, nil)
 	if err != nil {
 		return nil, err
 	}

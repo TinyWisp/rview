@@ -2,6 +2,7 @@ package ddl
 
 import (
 	"errors"
+	"fmt"
 	"math"
 	"reflect"
 	"regexp"
@@ -691,4 +692,40 @@ func (e *Exp) ActualTypeName() string {
 	}
 
 	return ExpTypeName[e.Type]
+}
+
+func (e *Exp) ToString() string {
+	switch e.Type {
+	case ExpInt:
+		return fmt.Sprintf("%d", e.Int)
+
+	case ExpFloat:
+		return fmt.Sprintf("%f", e.Float)
+
+	case ExpStr:
+		return e.Str
+
+	case ExpBool:
+		if e.Bool {
+			return "true"
+		}
+		return "false"
+
+	case ExpOperator:
+		return e.Operator
+
+	case ExpFunc:
+		return fmt.Sprintf("%s(...)", e.FuncName)
+
+	case ExpInterface:
+		return fmt.Sprintf("%v", e.Interface)
+
+	case ExpMap:
+		return fmt.Sprintf("%v", e.Map)
+
+	case ExpVar:
+		return fmt.Sprintf("variable: %s", e.Variable)
+	}
+
+	return "unknown"
 }
